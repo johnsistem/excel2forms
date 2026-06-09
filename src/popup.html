@@ -60,15 +60,16 @@
       <div class="settings-group">
         <label for="modeSelect">Modo de llenado</label>
         <select id="modeSelect">
-          <option value="semi" selected>Semi-automático (validar cada uno)</option>
+          <option value="semi">Semi-automático (materia por materia)</option>
+          <option value="per_student" selected>Por Estudiante (llena todo un estudiante y se detiene)</option>
           <option value="auto">Automático (todo de una)</option>
         </select>
       </div>
       <div class="settings-group">
         <label for="speedRange">Velocidad de llenado</label>
         <select id="speedRange">
-          <option value="5">Rápido (5s por registro)</option>
-          <option value="10" selected>Normal (10s por registro)</option>
+          <option value="5" selected>Rápido (5s por registro)</option>
+          <option value="10">Normal (10s por registro)</option>
           <option value="15">Lento (15s por registro)</option>
         </select>
       </div>

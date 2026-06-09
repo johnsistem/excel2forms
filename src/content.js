@@ -13,12 +13,15 @@ const INJECTOR = {
   async init() {
     this.notify('Content script cargado en la página');
     if (window.__sandboxLog) window.__sandboxLog('info', '[CS] init()');
-    const result = await chrome.storage.session.get('injectTask');
-    if (result.injectTask) {
-      this.task = result.injectTask;
-      this.notify('injectTask OK: ' + this.task.data.length + ' registros');
-    } else {
-      this.notify('Esperando injectTask vía mensaje...');
+    // Solo leer de storage si no tenemos datos ya (ej: llegaron por mensaje)
+    if (!this.task) {
+      const result = await chrome.storage.session.get('injectTask');
+      if (result.injectTask) {
+        this.task = result.injectTask;
+        this.notify('injectTask OK: ' + this.task.data.length + ' registros');
+      } else {
+        this.notify('Esperando injectTask vía mensaje...');
+      }
     }
   },
 
@@ -29,6 +32,16 @@ const INJECTOR = {
       this.notify('No hay datos.');
       return;
     }
+    // DEBUG: log data received
+    this.log('***** DATA RECIBIDA EN CONTENT SCRIPT *****');
+    this.task.data.forEach((r, idx) => {
+      this.log('Estudiante #' + (idx+1) + ': ' + r.nombre + ' (' + r.codigo + ')');
+      r.materias.forEach((m, mi) => {
+        this.log('  [' + mi + '] ' + m.nombre + ' → cual=' + m.cualitativo + ' cuant=' + m.cuantitativo);
+      });
+    });
+    this.log('***** FIN DATA *****');
+
     this.running = true;
     this.index = this.task.index || 0;
     this.subjectIndex = 0;
@@ -41,6 +54,8 @@ const INJECTOR = {
     try {
       if (mode === 'semi') {
         await this.injectNextSemi();
+      } else if (mode === 'per_student') {
+        await this.injectPerStudent();
       } else {
         await this.injectAll();
       }
@@ -162,11 +177,50 @@ const INJECTOR = {
     this.injectNextSemi();
   },
 
+  async injectPerStudent() {
+    if (!this.running) return;
+    if (this.index >= this.data.length) {
+      this.updatePanel('Completado ✓', 100);
+      this.showAutoStatus(false);
+      this.notify('Llenado completado.');
+      return;
+    }
+    const record = this.data[this.index];
+    this.log('=== ESTUDIANTE #' + (this.index + 1) + '/' + this.data.length + ': ' + record.nombre + ' ===');
+    await this.searchStudent(record);
+    const systemSubjects = this.getSystemSubjects();
+    this.log('Materias del SISTEMA: ' + systemSubjects.join(' | '));
+    let filledCount = 0;
+    for (let s = 0; s < systemSubjects.length; s++) {
+      if (!this.running) return;
+      const sysSubj = systemSubjects[s];
+      const mat = record.materias.find(m => this.norm(m.nombre) === this.norm(sysSubj));
+      if (!mat) { this.log('⏭ ' + sysSubj + ' no está en el Excel, saltando'); continue; }
+      filledCount++;
+      this.log('✓ ' + sysSubj + ' → ' + mat.cualitativo + ' ' + (mat.cuantitativo||''));
+      const pct = Math.round(((s + 1) / systemSubjects.length) * 100);
+      this.updatePanel(`#${this.index + 1}/${this.data.length} ${record.nombre} — ${sysSubj}`, pct);
+      await this.fillOneSubject(mat, sysSubj);
+      if (s < systemSubjects.length - 1) {
+        await this.sleep((this.config?.speed || 8) * 1000);
+      }
+    }
+    if (!filledCount) this.notify('⚠ ' + record.nombre + ' no tiene materias que coincidan');
+    this.notify('✓ ' + record.nombre + ' completado');
+    this.index++;
+    this.updatePanel(`#${this.index}/${this.data.length} ${this.index >= this.data.length ? 'Completado ✓' : 'Siguiente estudiante →'}`, 100);
+    this.showNextButton();
+    await new Promise(resolve => { this.resolveNext = resolve; });
+    this.resolveNext = null;
+    this.injectPerStudent();
+  },
+
   async injectAll() {
     for (let i = 0; i < this.data.length; i++) {
       if (!this.running) break;
       const record = this.data[i];
       this.log('=== ESTUDIANTE #' + (i + 1) + ': ' + record.nombre + ' (código=' + record.codigo + ') ===');
+      this.log(`[RAW DATA EXCEL] Materias recibidas: ${JSON.stringify(record.materias)}`);
       this.log('Materias del Excel:');
       record.materias.forEach(m => this.log('  ' + m.nombre + ' → cual=' + (m.cualitativo||'') + ' cuant=' + (m.cuantitativo!=null?m.cuantitativo:'') ));
       await this.searchStudent(record);
@@ -406,20 +460,14 @@ const INJECTOR = {
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'INJECT_START') {
-    INJECTOR.init().then(() => INJECTOR.start());
+    if (message.payload) {
+      INJECTOR.task = message.payload;
+      INJECTOR.init().then(() => INJECTOR.start());
+    } else {
+      INJECTOR.init().then(() => INJECTOR.start());
+    }
     sendResponse({ ok: true });
     return true;
-  }
-});
-
-INJECTOR.init().then(() => {
-  if (INJECTOR.task?.data?.length && !INJECTOR.running) INJECTOR.start();
-});
-
-chrome.storage.session.onChanged.addListener((changes) => {
-  if (changes.injectTask?.newValue && !INJECTOR.running) {
-    INJECTOR.task = changes.injectTask.newValue;
-    INJECTOR.start();
   }
 });
 

@@ -116,6 +116,8 @@ function parseExcel(buf) {
     if (nonEmpty[i].some(c => nameKw.test(String(c)))) { hdr = i; break; }
   }
   const cols = nonEmpty[hdr].map(h => String(h).trim());
+  console.log('[Digitar] Columnas detectadas:', JSON.stringify(cols));
+  console.log('[Digitar] Total columnas:', cols.length);
   const data = rows.slice(hdr + 1).filter(r => r.some(c => String(c).trim() !== ''));
 
   let nameCol = -1, codeCol = -1, promCol = -1;
@@ -129,17 +131,30 @@ function parseExcel(buf) {
     subjCols.push(i);
   }
   if (nameCol < 0) nameCol = 0;
+  console.log('[Digitar] nameCol=' + nameCol + ' codeCol=' + codeCol + ' promCol=' + promCol + ' subjCols=' + JSON.stringify(subjCols));
 
   const records = [];
   for (const r of data) {
     const nombre = String(r[nameCol] || '').trim();
     if (!nombre) continue;
+    
+    // DEBUG: Imprimir la fila cruda leída por XLSX
+    console.log(`[Digitar] Fila cruda de ${nombre}:`, JSON.stringify(r));
+    console.log(`[Digitar] Largo cols=${cols.length}, largo row=${r.length}`);
+    
     const codigo = codeCol >= 0 ? String(r[codeCol] || '').trim() : '';
-    const materias = subjCols.filter(i => i !== promCol && cols[i]).map(i => ({
-      nombre: mapSubjectName(cols[i]),
-      ...parseCell(r[i]),
-    })).filter(m => m.cualitativo || m.cuantitativo !== null);
-    const promedio = promCol >= 0 ? parseCell(r[promCol]) : null;
+    const materias = subjCols.filter(i => i !== promCol && cols[i]).map(i => {
+      // Las celdas en XLSX `sheet_to_json` con `header: 1` a veces no tienen el mismo índice
+      // Si la fila `r` tiene menos elementos que la cabecera `cols`, o si hay desfases por columnas combinadas.
+      // Pero si usamos `r[i]` DEBE mapear con `cols[i]` porque `header: 1` devuelve un array puro por índice.
+      const rawCell = r[i];
+      const cellData = parseCell(rawCell !== undefined ? rawCell : '');
+      return {
+        nombre: mapSubjectName(cols[i]),
+        ...cellData,
+      };
+    }).filter(m => m.cualitativo || m.cuantitativo !== null); // IMPORTANTE: FILTRO RECUPERADO
+    const promedio = promCol >= 0 ? parseCell(r[promCol] !== undefined ? r[promCol] : '') : null;
     records.push({ nombre, codigo, materias, promedio });
   }
   const detectedCols = subjCols.filter(i => i !== promCol && cols[i]).map(i => ({
@@ -391,7 +406,7 @@ function rebuildWithMapping(rows, cols, userMap) {
     // User mapping has priority
     if (userMap[t]) return userMap[t];
     // Then auto-map
-    const normal = t.replace(/\./g, '').replace(/\s+/g, ' ').trim();
+    const normal = normalizeName(t);
     return SUBJECT_MAP[t] || SUBJECT_MAP[normal] || t;
   }
   const nameKw = /nombre|alumno|estudiante|apellido|name|alumnos/i;
@@ -414,11 +429,15 @@ function rebuildWithMapping(rows, cols, userMap) {
     const nombre = String(r[nameCol] || '').trim();
     if (!nombre) continue;
     const codigo = codeCol >= 0 ? String(r[codeCol] || '').trim() : '';
-    const materias = subjCols.filter(i => i !== promCol && cols[i]).map(i => ({
-      nombre: mapName(cols[i]),
-      ...parseCell(r[i]),
-    })).filter(m => m.cualitativo || m.cuantitativo !== null);
-    const promedio = promCol >= 0 ? parseCell(r[promCol]) : null;
+    const materias = subjCols.filter(i => i !== promCol && cols[i]).map(i => {
+      const rawCell = r[i];
+      const cellData = parseCell(rawCell !== undefined ? rawCell : '');
+      return {
+        nombre: mapName(cols[i]),
+        ...cellData,
+      };
+    }).filter(m => m.cualitativo || m.cuantitativo !== null); // IMPORTANTE: FILTRO RECUPERADO
+    const promedio = promCol >= 0 ? parseCell(r[promCol] !== undefined ? r[promCol] : '') : null;
     records.push({ nombre, codigo, materias, promedio });
   }
   return records;
@@ -432,6 +451,16 @@ function escHtml(s) {
 
 function confirmData() {
   if (STATE.parsedData && STATE.parsedData.length > 0) {
+    // DEBUG: imprimir datos ANTES de enviar
+    console.log('[Digitar] ***** DATOS A ENVIAR *****');
+    STATE.parsedData.forEach((r, idx) => {
+      console.log('[Digitar] Estudiante #' + (idx+1) + ': ' + r.nombre + ' (' + r.codigo + ')');
+      r.materias.forEach((m, mi) => {
+        console.log('[Digitar]   [' + mi + '] ' + m.nombre + ' → cual=' + m.cualitativo + ' cuant=' + m.cuantitativo);
+      });
+    });
+    console.log('[Digitar] ***** FIN DATOS *****');
+
     const mode = document.getElementById('modeSelect').value;
     const speed = parseInt(document.getElementById('speedRange').value, 10);
     chrome.storage.session.set({

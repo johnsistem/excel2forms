@@ -30,7 +30,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           sendResponse({ error: 'No se encontró la página del MINED ni el sandbox.' });
           return;
         }
-        await chrome.tabs.sendMessage(tab.id, { type: 'INJECT_START' });
+        // Pasar datos directamente en el mensaje, sin storage
+        const result = await chrome.storage.session.get('injectTask');
+        const injectTask = result.injectTask || null;
+        await chrome.tabs.sendMessage(tab.id, { type: 'INJECT_START', payload: injectTask });
         sendResponse({ ok: true });
       })();
       return true;

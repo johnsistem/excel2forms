@@ -22,10 +22,11 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background: var(--bg);
   color: var(--text);
-  width: 480px;
+  width: 520px;
   min-height: 400px;
   font-size: 14px;
 }
+html { background: var(--bg); }
 
 .container {
   padding: 16px;
@@ -79,7 +80,7 @@ h1 {
 }
 
 .tab-content.active {
-  display: block;
+  display: block !important;
 }
 
 /* Upload Zone */
