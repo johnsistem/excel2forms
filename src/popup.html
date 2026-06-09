@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Asistente de Accesibilidad</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Asistente de Accesibilidad Visual</h1>
+      <nav class="tabs">
+        <button class="tab active" data-tab="scanner">Escáner</button>
+        <button class="tab" data-tab="settings">Configuración</button>
+      </nav>
+    </header>
+
+    <section id="tab-scanner" class="tab-content active">
+      <div class="upload-zone" id="uploadZone">
+        <div class="upload-icon">+</div>
+        <p class="upload-text">Arrastra un archivo aquí o haz clic para seleccionar</p>
+        <p class="upload-hint">Formatos: Excel (.xlsx, .xls), imagen (JPG, PNG, BMP)</p>
+        <input type="file" id="fileInput" accept=".xlsx,.xls,.csv,image/*" hidden>
+      </div>
+
+      <div id="previewSection" class="hidden">
+        <h3>Vista Previa</h3>
+
+        <div id="mappingSection" class="mapping-section hidden">
+          <h4>Mapeo de Columnas</h4>
+          <p class="mapping-hint">Verificá que cada columna del Excel se asigne a la materia correcta del sistema.</p>
+          <div id="mappingList"></div>
+          <button id="remapBtn" class="btn secondary">Re-aplicar mapeo</button>
+          <hr>
+        </div>
+
+        <div id="previewTableContainer">
+          <table id="previewTable">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Estudiante</th>
+                <th>Código</th>
+                <th>Materias (Mapeadas)</th>
+              </tr>
+            </thead>
+            <tbody id="previewBody"></tbody>
+          </table>
+        </div>
+        <div class="preview-actions">
+          <button id="confirmBtn" class="btn primary">Confirmar y Poblar</button>
+          <button id="clearBtn" class="btn secondary">Limpiar</button>
+        </div>
+      </div>
+
+      <div id="statusMessage" class="status hidden"></div>
+    </section>
+
+    <section id="tab-settings" class="tab-content hidden">
+      <div class="settings-group">
+        <label for="modeSelect">Modo de llenado</label>
+        <select id="modeSelect">
+          <option value="semi" selected>Semi-automático (validar cada uno)</option>
+          <option value="auto">Automático (todo de una)</option>
+        </select>
+      </div>
+      <div class="settings-group">
+        <label for="speedRange">Velocidad de llenado</label>
+        <select id="speedRange">
+          <option value="5">Rápido (5s por registro)</option>
+          <option value="10" selected>Normal (10s por registro)</option>
+          <option value="15">Lento (15s por registro)</option>
+        </select>
+      </div>
+      <div class="settings-group">
+        <label for="licenseInput">Clave de Licencia</label>
+        <input type="text" id="licenseInput" placeholder="XXXX-XXXX-XXXX">
+        <button id="activateBtn" class="btn secondary">Activar</button>
+        <p id="licenseStatus" class="license-status"></p>
+      </div>
+      <div class="settings-group">
+        <p class="version">Versión 1.0.0</p>
+      </div>
+    </section>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

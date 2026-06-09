@@ -1,0 +1,7 @@
+node_modules/
+dist/
+dist-usb/
+tessdata/
+tesseract/
+.DS_Store
+*.log

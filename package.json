@@ -1,0 +1,22 @@
+{
+  "name": "digitar-extension",
+  "version": "1.0.0",
+  "description": "Asistente de Accesibilidad Visual - Digitalización de actas",
+  "private": true,
+  "scripts": {
+    "build": "webpack --mode production",
+    "build:dev": "webpack --mode development",
+    "build:usb": "webpack --mode production && rm -rf dist-usb && cp -r dist dist-usb && javascript-obfuscator ./dist-usb --output ./dist-usb --compact true --self-defending true --disable-console-output true --string-array-encoding rc4 --rename-globals true",
+    "obfuscate": "rm -rf dist-usb && cp -r dist dist-usb && javascript-obfuscator ./dist-usb --output ./dist-usb --compact true --self-defending true --disable-console-output true --string-array-encoding rc4 --rename-globals true"
+  },
+  "devDependencies": {
+    "copy-webpack-plugin": "^12.0.2",
+    "javascript-obfuscator": "^4.1.1",
+    "webpack": "^5.94.0",
+    "webpack-cli": "^5.1.4"
+  },
+  "dependencies": {
+    "tesseract.js": "^5.1.1",
+    "xlsx": "^0.18.5"
+  }
+}

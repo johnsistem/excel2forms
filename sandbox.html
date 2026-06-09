@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Sandbox - Formulario MINED (Next.js + MUI)</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Roboto','Segoe UI',Arial,sans-serif; background: #f5f5f5; padding: 24px; color: #333; }
+  .container { max-width: 1200px; margin: 0 auto; }
+  h1 { font-size: 20px; font-weight: 500; color: #1a237e; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: #666; margin-bottom: 16px; }
+  .sandbox-warning { background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px; padding: 10px 14px; font-size: 13px; margin-bottom: 16px; }
+  .layout { display: flex; gap: 20px; }
+  .form-area { flex: 1; min-width: 0; }
+  .card { background: #fff; border-radius: 8px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,.08); margin-bottom: 16px; }
+  .card-title { font-size: 14px; font-weight: 600; color: #1a237e; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid #e0e0e0; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  .grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12px; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field label { font-size: 12px; color: #555; font-weight: 500; }
+  .field input, .field select {
+    padding: 8px 12px; border: 1px solid #c0c0c0; border-radius: 4px;
+    font-size: 14px; font-family: inherit; background: #fff; color: #333;
+  }
+  .field input:disabled { background: #f5f5f5; color: #999; cursor: not-allowed; }
+  .field input:focus, .field select:focus { outline: 2px solid #1976d2; border-color: transparent; }
+  .field input.filled { background: #e8f5e9; border-color: #66bb6a; }
+  .btn {
+    padding: 8px 20px; border: none; border-radius: 4px; cursor: pointer;
+    font-size: 13px; font-weight: 500; font-family: inherit;
+  }
+  .btn-primary { background: #1976d2; color: #fff; }
+  .btn-primary:hover { background: #1565c0; }
+  .btn-primary:disabled { background: #b0bec5; color: #fff; cursor: not-allowed; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { background: #f5f5f5; padding: 10px 8px; border: 1px solid #e0e0e0; font-weight: 600; font-size: 12px; text-align: left; }
+  td { border: 1px solid #e0e0e0; padding: 8px; }
+  td .btn-baja { background: none; border: none; cursor: pointer; font-size: 14px; padding: 2px 6px; border-radius: 4px; }
+  td .btn-baja:hover { background: #ffebee; }
+
+  .log-area { width: 340px; background: #1e293b; border-radius: 8px; padding: 12px; color: #e2e8f0; font-family: 'Consolas', monospace; font-size: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.1); display: flex; flex-direction: column; flex-shrink: 0; }
+  .log-area h3 { font-size: 13px; margin-bottom: 8px; color: #94a3b8; text-transform: uppercase; letter-spacing: .5px; }
+  #log { flex: 1; overflow-y: auto; max-height: 700px; }
+  #log div { padding: 4px 0; border-bottom: 1px solid #334155; }
+  #log .ok { color: #4ade80; }
+  #log .info { color: #60a5fa; }
+  #log .warn { color: #fbbf24; }
+
+  .result-aprobado { color: #2e7d32; font-weight: 600; }
+  .result-reprobado { color: #c62828; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Sandbox — Formulario MINED (Next.js + MUI)</h1>
+  <p class="subtitle">Simulación del formulario real de serviciosenlinea.mined.gob.ni (búsqueda + materia por materia)</p>
+
+  <div class="sandbox-warning">
+    <strong>Modo prueba:</strong> Esta página simula el formulario <strong>Next.js + MUI</strong> del MINED.
+    La extensión debe estar cargada para probar la inyección. Los datos no se envían a ningún lado.
+    <br><small>Flujo: Buscar estudiante → Seleccionar asignatura → Ingresar nota → Guardar → se agrega al DataGrid</small>
+  </div>
+
+  <div class="layout">
+    <div class="form-area">
+
+      <!-- Card 1: Búsqueda de Estudiante -->
+      <div class="card">
+        <div class="card-title">Búsqueda de Estudiante</div>
+        <form id="searchForm">
+          <div class="grid-3">
+            <div class="field">
+              <label for="CodigoPersonaEstudiante">Código del Estudiante</label>
+              <input type="text" id="CodigoPersonaEstudiante" name="CodigoPersonaEstudiante" maxlength="14" placeholder="Ej: 70FD1911">
+            </div>
+            <div class="field">
+              <label for="Anio">Año</label>
+              <select id="Anio" name="Anio"><option value="2025">2025</option></select>
+            </div>
+            <div class="field">
+              <label for="TipoEvaluacion">Tipo de Evaluación</label>
+              <select id="TipoEvaluacion" name="TipoEvaluacion"><option value="1">1er Corte Evaluativo</option></select>
+            </div>
+          </div>
+          <div style="margin-top:14px;text-align:right">
+            <button type="submit" class="btn btn-primary" id="btnBuscar">Buscar</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Card 2: Datos del Estudiante (hidden until search) -->
+      <div class="card" id="studentInfoCard" style="display:none">
+        <div class="card-title">Datos del Estudiante</div>
+        <div class="grid-4">
+          <div class="field">
+            <label for="NombreCompleto">Nombre Completo</label>
+            <input type="text" id="NombreCompleto" disabled>
+          </div>
+          <div class="field">
+            <label for="FechaNac">Fecha de Nacimiento</label>
+            <input type="text" id="FechaNac" disabled>
+          </div>
+          <div class="field">
+            <label for="Edad">Edad</label>
+            <input type="text" id="Edad" disabled>
+          </div>
+          <div class="field">
+            <label for="Sexo">Sexo</label>
+            <input type="text" id="Sexo" disabled>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card Demo Buttons -->
+      <div class="card" style="background:#e3f2fd;border:1px solid #90caf9">
+        <div class="card-title" style="color:#1565c0">🧪 Prueba rápida (sin extensión)</div>
+        <p style="font-size:13px;margin-bottom:12px;color:#555">
+          Estos botones simulan lo que haría la extensión pero directamente en el sandbox.
+          No necesita la extensión cargada.
+        </p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-primary" id="demoAutoBtn">▶ Demo Auto (llena todo)</button>
+          <button class="btn btn-primary" id="demoSemiBtn" style="background:#7b1fa2">⏸ Demo Semi (1 materia a la vez)</button>
+          <button class="btn btn-secondary" onclick="limpiarTodo()">🗑 Limpiar todo</button>
+        </div>
+      </div>
+
+      <!-- Card 3: Registro de Notas -->
+      <div class="card">
+        <div class="card-title">Registro de Notas</div>
+        <form id="gradeForm">
+          <div class="grid">
+            <div class="field">
+              <label for="Id_Asignatable">Seleccionar Asignatura</label>
+              <select id="Id_Asignatable" name="Id_Asignatura">
+                <option value="">-- Seleccione --</option>
+              </select>
+            </div>
+          </div>
+          <div id="gradeInputs" class="grid" style="margin-top:12px;display:none">
+            <div class="field">
+              <label for="Calif_Cualitativa">Nota Cualitativa</label>
+              <input type="text" id="Calif_Cualitativa" name="Calif_Cualitativa" maxlength="2" placeholder="AA / AS / AF">
+            </div>
+            <div class="field">
+              <label for="Calif_Cuantitativa">Nota Cuantitativa</label>
+              <input type="number" id="Calif_Cuantitativa" name="Calif_Cuantitativa" min="0" max="100" placeholder="0-100">
+            </div>
+          </div>
+          <div style="margin-top:14px;text-align:center">
+            <button type="submit" class="btn btn-primary" id="btnGuardar" disabled>Guardar</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Card 4: Notas Registradas (DataGrid) -->
+      <div class="card">
+        <div class="card-title">Notas Registradas</div>
+        <table>
+          <thead>
+            <tr>
+              <th style="width:50px">Fila</th>
+              <th>Asignatura</th>
+              <th style="width:130px">Nota Cualitativa</th>
+              <th style="width:140px">Nota Cuantitativa</th>
+              <th style="width:110px">Resultado</th>
+              <th style="width:60px">Baja?</th>
+            </tr>
+          </thead>
+          <tbody id="dgBody"></tbody>
+        </table>
+        <div id="emptyGridMsg" style="text-align:center;padding:24px;color:#999;font-size:13px">
+          Busque un estudiante y guarde notas para ver los registros aquí.
+        </div>
+      </div>
+
+    </div>
+
+    <div class="log-area">
+      <h3>Log de Inyección</h3>
+      <div id="log"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUBJECTS = [
+  'Matemática',
+  'Lengua y Literatura',
+  'Lengua Extranjera (Inglés)',
+  'Educación Física y Práctica Deportiva',
+  'Educación para Aprender, Emprender, Prosperar',
+  'Ciencias Sociales',
+  'Biología',
+  'Física',
+  'Creciendo en Valores',
+  'Derechos y Dignidad de las Mujeres',
+  'VADP',
+];
+
+const CUALIS = ['AA', 'AS', 'AF', 'AA', 'AS', 'AA', 'AA', 'AS', 'AA', 'AS', 'AS'];
+const CUANTIS = [93, 97, 81, 100, 90, 89, null, null, null, null, null];
+const CUALIS2 = ['AA', 'AA', 'AA', 'AA', 'AS', 'AA', 'AS', 'AA', 'AS', 'AA', 'AS'];
+const CUANTIS2 = [95, 91, 98, 98, 94, 90, null, null, null, null, null];
+const CUALIS3 = ['AS', 'AF', 'AA', 'AA', 'AS', 'AS', 'AA', 'AS', 'AS', 'AF', 'AS'];
+const CUANTIS3 = [84, 75, 93, 83, 79, 89, null, null, null, null, null];
+
+const DEMO = [
+  { nombre: 'Angie Ismara Cabrera Dumas', codigo: '70FD1911', fechaNac: '15/03/2008', edad: '17', sexo: 'Femenino',
+    materias: SUBJECTS.map((n, i) => ({ nombre: n, cualitativo: CUALIS[i], cuantitativo: CUANTIS[i] }))
+  },
+  { nombre: 'Aurora Ruyeina Lopez', codigo: '6BBD04A0', fechaNac: '22/07/2007', edad: '18', sexo: 'Femenino',
+    materias: SUBJECTS.map((n, i) => ({ nombre: n, cualitativo: CUALIS2[i], cuantitativo: CUANTIS2[i] }))
+  },
+  { nombre: 'Azlhing Graciela Cordoba Chavarria', codigo: '6B588957', fechaNac: '10/11/2007', edad: '18', sexo: 'Femenino',
+    materias: SUBJECTS.map((n, i) => ({ nombre: n, cualitativo: CUALIS3[i], cuantitativo: CUANTIS3[i] }))
+  },
+];
+
+let currentStudent = null;
+let gradeCounter = 0;
+
+// Pre-poblar el select de materias al cargar (para que se vean siempre)
+(function populateSubjectSelect() {
+  const sel = document.getElementById('Id_Asignatable');
+  SUBJECTS.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s;
+    opt.textContent = s;
+    sel.appendChild(opt);
+  });
+})();
+
+document.getElementById('searchForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const code = document.getElementById('CodigoPersonaEstudiante').value.trim();
+  const student = DEMO.find(s => s.codigo === code);
+  if (student) {
+    // Limpiar DataGrid y resetear contador al cambiar de estudiante
+    document.getElementById('dgBody').innerHTML = '';
+    document.getElementById('emptyGridMsg').style.display = 'block';
+    gradeCounter = 0;
+
+    currentStudent = student;
+    document.getElementById('NombreCompleto').value = student.nombre;
+    document.getElementById('NombreCompleto').dispatchEvent(new Event('input', { bubbles: true }));
+    document.getElementById('FechaNac').value = student.fechaNac;
+    document.getElementById('Edad').value = student.edad;
+    document.getElementById('Sexo').value = student.sexo;
+    document.getElementById('studentInfoCard').style.display = 'block';
+
+    const sel = document.getElementById('Id_Asignatable');
+    sel.innerHTML = '<option value="">-- Seleccione --</option>';
+    student.materias.forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = m.nombre;
+      opt.textContent = m.nombre;
+      sel.appendChild(opt);
+    });
+
+    log('ok', `Estudiante encontrado: ${student.nombre} (${student.codigo})`);
+  } else {
+    log('warn', `Código no encontrado en demo: "${code}". Códigos: ${DEMO.map(s=>s.codigo).join(', ')}`);
+  }
+});
+
+document.getElementById('Id_Asignatable').addEventListener('change', function() {
+  const show = this.value && currentStudent;
+  document.getElementById('gradeInputs').style.display = show ? 'grid' : 'none';
+  document.getElementById('btnGuardar').disabled = !show;
+  // No precargar notas del DEMO — el content script las escribe después
+  if (show) {
+    document.getElementById('Calif_Cualitativa').value = '';
+    document.getElementById('Calif_Cuantitativa').value = '';
+  }
+});
+
+document.getElementById('gradeForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const subjectName = document.getElementById('Id_Asignatable').value;
+  if (!subjectName || !currentStudent) return;
+  const cuali = document.getElementById('Calif_Cualitativa').value.trim();
+  const cuanti = document.getElementById('Calif_Cuantitativa').value.trim();
+  gradeCounter++;
+  const numCuanti = parseInt(cuanti, 10);
+  const result = (!isNaN(numCuanti) && numCuanti >= 70) || cuali === 'AA' || cuali === 'AS' ? 'APROBADO' : 'REPROBADO';
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td>${gradeCounter}</td><td>${subjectName}</td><td>${cuali || '—'}</td><td>${cuanti || '—'}</td><td class="${result === 'APROBADO' ? 'result-aprobado' : 'result-reprobado'}">${result}</td><td><button class="btn-baja" onclick="this.closest('tr').remove();checkEmptyGrid()">🗑</button></td>`;
+  document.getElementById('dgBody').appendChild(tr);
+  document.getElementById('emptyGridMsg').style.display = 'none';
+  log('ok', `Nota guardada: ${subjectName} — Cual: ${cuali || '—'} / Cuant: ${cuanti || '—'} (${result})`);
+  // Debug: mostrar el orden exacto del grid
+  const allRows = document.getElementById('dgBody').children;
+  const gridSummary = Array.from(allRows).map((tr, idx) => `${idx+1}.${tr.cells[1]?.textContent}:${tr.cells[2]?.textContent}/${tr.cells[3]?.textContent}`).join(' | ');
+  log('info', '[Debug Grid] ' + gridSummary);
+  document.getElementById('Calif_Cualitativa').value = '';
+  document.getElementById('Calif_Cuantitativa').value = '';
+  document.getElementById('Id_Asignatable').value = '';
+  document.getElementById('gradeInputs').style.display = 'none';
+  document.getElementById('btnGuardar').disabled = true;
+  // Dispatch change on the select so React listeners fire
+  document.getElementById('Id_Asignatable').dispatchEvent(new Event('change', { bubbles: true }));
+});
+
+function checkEmptyGrid() {
+  if (document.getElementById('dgBody').children.length === 0) {
+    document.getElementById('emptyGridMsg').style.display = 'block';
+  }
+}
+
+function log(type, msg) {
+  const el = document.getElementById('log');
+  const d = document.createElement('div');
+  d.className = type;
+  d.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+  el.appendChild(d);
+  el.scrollTop = el.scrollHeight;
+}
+
+/* ───── Demo Buttons ───── */
+let demoRunning = false;
+let demoResolve = null;
+
+function demoLog(msg, type) {
+  log(type || 'info', '[Demo] ' + msg);
+}
+
+function limpiarTodo() {
+  gradeCounter = 0;
+  document.getElementById('dgBody').innerHTML = '';
+  document.getElementById('emptyGridMsg').style.display = 'block';
+  document.getElementById('CodigoPersonaEstudiante').value = '';
+  document.getElementById('NombreCompleto').value = '';
+  document.getElementById('FechaNac').value = '';
+  document.getElementById('Edad').value = '';
+  document.getElementById('Sexo').value = '';
+  document.getElementById('studentInfoCard').style.display = 'none';
+  document.getElementById('Id_Asignatable').value = '';
+  document.getElementById('gradeInputs').style.display = 'none';
+  document.getElementById('btnGuardar').disabled = true;
+  currentStudent = null;
+  demoLog('Todo limpiado', 'ok');
+}
+
+async function guardarMateriaDemo(mat) {
+  document.getElementById('Id_Asignatable').value = mat.nombre;
+  document.getElementById('Id_Asignatable').dispatchEvent(new Event('change', { bubbles: true }));
+  await sleep(200);
+  document.getElementById('Calif_Cualitativa').value = mat.cualitativo || '';
+  document.getElementById('Calif_Cuantitativa').value = mat.cuantitativo != null ? mat.cuantitativo : '';
+  document.getElementById('Calif_Cualitativa').dispatchEvent(new Event('input', { bubbles: true }));
+  document.getElementById('Calif_Cuantitativa').dispatchEvent(new Event('input', { bubbles: true }));
+  document.getElementById('btnGuardar').disabled = false;
+  await sleep(200);
+  document.getElementById('gradeForm').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+  await sleep(300);
+}
+
+async function demoAuto() {
+  if (demoRunning) return;
+  demoRunning = true;
+  demoLog('Enviando datos al content script (Demo Auto)...');
+  document.dispatchEvent(new CustomEvent('__digitar_inject_demo', {
+    detail: { data: DEMO, mode: 'auto', speed: 1 }
+  }));
+  // El content script maneja todo desde acá
+}
+
+async function demoSemi() {
+  if (demoRunning) return;
+  demoRunning = true;
+  demoLog('Enviando datos al content script (Demo Semi)...');
+  document.dispatchEvent(new CustomEvent('__digitar_inject_demo', {
+    detail: { data: DEMO, mode: 'semi', speed: 1 }
+  }));
+}
+
+document.getElementById('demoAutoBtn').onclick = demoAuto;
+document.getElementById('demoSemiBtn').onclick = demoSemi;
+
+// Escuchar completado del content script
+document.addEventListener('__digitar_log', function(e) {
+  if (e.detail && e.detail.includes('Llenado completado')) {
+    demoRunning = false;
+  }
+});
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+window.__sandboxLog = log;
+
+// Escuchar eventos del content script (isolated world → page)
+document.addEventListener('__digitar_log', function(e) {
+  log('info', '[CS] ' + e.detail);
+});
+
+log('info', 'Sandbox Next.js+MUI listo. ' + DEMO.length + ' estudiantes, ' + SUBJECTS.length + ' materias c/u');
+log('info', 'Códigos demo: ' + DEMO.map(s=>s.codigo).join(', '));
+log('info', 'Materias: ' + SUBJECTS.join(', '));
+log('info', 'Usá los botones "Demo Auto" o "Demo Semi" para probar sin extensión');
+</script>
+</body>
+</html>
