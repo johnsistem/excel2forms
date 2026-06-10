@@ -1,6 +1,4 @@
-const Tesseract = require('tesseract.js');
 const XLSX = require('xlsx');
-const BASE = '../';
 
 if (!window.location.search.includes('mode=tab')) {
   chrome.tabs.create({ url: 'src/popup.html?mode=tab' });
@@ -9,14 +7,44 @@ if (!window.location.search.includes('mode=tab')) {
 
 document.addEventListener('DOMContentLoaded', function() {
   initTabs();
-  initUpload();
+  checkLicenseAccess();
   document.getElementById('confirmBtn').addEventListener('click', confirmData);
   document.getElementById('clearBtn').addEventListener('click', clearData);
   document.getElementById('activateBtn').addEventListener('click', activateLicense);
   document.getElementById('remapBtn').addEventListener('click', applyRemap);
+  document.getElementById('copyMachineIDBtn').addEventListener('click', copyMachineID);
+  loadMachineID();
+  checkLicenseStatus();
 });
 
 const STATE = { parsedData: null, detectedCols: [], rawRows: null, rawCols: null };
+
+function checkLicenseAccess() {
+  chrome.runtime.sendMessage({ type: 'CHECK_LICENSE' }, res => {
+    if (res?.valid) {
+      document.getElementById('licenseBlock').classList.add('hidden');
+      document.getElementById('appContent').classList.remove('hidden');
+      document.getElementById('trialInfo').classList.add('hidden');
+      initUpload();
+    } else {
+      chrome.runtime.sendMessage({ type: 'CHECK_TRIAL' }, trial => {
+        const block = document.getElementById('licenseBlock');
+        const content = document.getElementById('appContent');
+        const trialEl = document.getElementById('trialInfo');
+        if (trial.remaining > 0) {
+          block.classList.add('hidden');
+          content.classList.remove('hidden');
+          trialEl.textContent = '🔍 Prueba gratis: te quedan ' + trial.remaining + ' de 50 estudiantes.';
+          trialEl.classList.remove('hidden');
+          initUpload();
+        } else {
+          block.classList.remove('hidden');
+          content.classList.add('hidden');
+        }
+      });
+    }
+  });
+}
 
 function initTabs() {
   document.querySelectorAll('.tab').forEach(tab => {
@@ -164,60 +192,6 @@ function parseExcel(buf) {
   return records.length ? { records, detectedCols, rawRows: data, rawCols: cols } : null;
 }
 
-function preprocessForAI(dataUrl) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      let w = img.width, h = img.height;
-      const maxDim = 2048;
-      if (w > maxDim || h > maxDim) {
-        const s = maxDim / Math.max(w, h);
-        w = Math.round(w * s);
-        h = Math.round(h * s);
-      }
-      canvas.width = w;
-      canvas.height = h;
-      ctx.drawImage(img, 0, 0, w, h);
-      resolve(canvas);
-    };
-    img.onerror = () => reject(new Error('Error al cargar imagen'));
-    img.src = dataUrl;
-  });
-}
-
-async function recognizeWithAI(canvas) {
-  if (typeof LanguageModel === 'undefined') return null;
-  try {
-    const avail = await LanguageModel.availability({
-      expectedInputs: [{ type: 'text' }, { type: 'image' }],
-      expectedOutputs: [{ type: 'text' }],
-    });
-    if (avail !== 'readily') return null;
-    const session = await LanguageModel.create({
-      systemPrompt: 'Eres un asistente experto en leer actas de calificaciones de MINED Nicaragua. Extrae CADA ESTUDIANTE con su nombre completo y notas.',
-      temperature: 0.1,
-      expectedInputs: [{ type: 'text' }, { type: 'image' }],
-      expectedOutputs: [{ type: 'text' }],
-    });
-    const result = await session.prompt([
-      {
-        role: 'user',
-        content: [
-          { type: 'text', value: 'Extrae todos los estudiantes y sus notas de esta acta. Devuelve SOLO un arreglo JSON válido: [{ "nombre": "...", "notas": "..." }]. Sin explicaciones, solo JSON.' },
-          { type: 'image', value: canvas },
-        ],
-      },
-    ]);
-    session.destroy();
-    return result;
-  } catch (e) {
-    console.warn('window.ai error:', e);
-    return null;
-  }
-}
-
 function readFileAsArrayBuffer(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -228,130 +202,29 @@ function readFileAsArrayBuffer(file) {
 }
 
 async function processFile(file) {
-  const isExcel = /\.(xlsx|xls)$/i.test(file.name);
-  const isImage = file.type.startsWith('image/');
-
-  if (!isExcel && !isImage) {
-    showStatus('Formato no soportado. Usa Excel (.xlsx, .xls) o imagen.', 'error');
+  if (!/\.(xlsx|xls)$/i.test(file.name)) {
+    showStatus('Formato no soportado. Usá Excel (.xlsx, .xls).', 'error');
     return;
   }
-
   try {
-    if (isExcel) {
-      showStatus('Leyendo Excel...', 'info');
-      const buf = await readFileAsArrayBuffer(file);
-      const result = parseExcel(new Uint8Array(buf));
-      if (!result || !result.records || result.records.length === 0) {
-        showStatus('No se encontraron datos en el archivo.', 'error');
-        return;
-      }
-      STATE.parsedData = result.records;
-      STATE.detectedCols = result.detectedCols || [];
-      STATE.rawRows = result.rawRows || null;
-      STATE.rawCols = result.rawCols || null;
-      renderPreview(result.records);
-      renderMapping(result.detectedCols || []);
-      document.getElementById('previewSection').classList.remove('hidden');
-      showStatus(`${result.records.length} registros cargados desde Excel.`, 'success');
+    showStatus('Leyendo Excel...', 'info');
+    const buf = await readFileAsArrayBuffer(file);
+    const result = parseExcel(new Uint8Array(buf));
+    if (!result || !result.records || result.records.length === 0) {
+      showStatus('No se encontraron datos en el archivo.', 'error');
       return;
     }
-
-    showStatus('Procesando imagen...', 'info');
-    const dataUrl = await readFileAsDataURL(file);
-    const canvas = await preprocessForAI(dataUrl);
-
-    let text;
-    let source = 'ai';
-
-    showStatus('Analizando con AI...', 'info');
-    text = await recognizeWithAI(canvas);
-
-    if (!text) {
-      showStatus('AI no disponible, usando Tesseract...', 'info');
-      source = 'tesseract';
-
-      const worker = await Promise.race([
-        Tesseract.createWorker('spa', 0, {
-          workerPath: `${BASE}tesseract/worker-bundle.js`,
-          corePath: `${BASE}tesseract/`,
-          langPath: `${BASE}tessdata`,
-          workerBlobURL: false,
-          gzip: false,
-          logger: (m) => {
-            showStatus(`Tesseract: ${m.status}${m.progress ? ' ' + Math.round(m.progress * 100) + '%' : ''}`, 'info');
-          }
-        }),
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Timeout (2 min)')), 120000)
-        )
-      ]);
-
-      showStatus('Reconociendo...', 'info');
-      const { data: tessData } = await worker.recognize(canvas, { tessedit_pageseg_mode: '6' });
-      await worker.terminate();
-      text = tessData.text;
-    }
-
-    let parsed;
-    if (source === 'ai' && text) {
-      try {
-        const jsonStart = text.indexOf('[');
-        const jsonEnd = text.lastIndexOf(']') + 1;
-        if (jsonStart >= 0 && jsonEnd > jsonStart) {
-          parsed = JSON.parse(text.slice(jsonStart, jsonEnd));
-        } else {
-          parsed = parseGrades(text);
-        }
-      } catch (_) {
-        parsed = parseGrades(text);
-      }
-    } else {
-      parsed = parseGrades(text);
-    }
-
-    if (!parsed || parsed.length === 0) {
-      showStatus('No se detectaron registros.', 'error');
-      return;
-    }
-
-    STATE.parsedData = parsed;
-    STATE.detectedCols = [];
-    renderPreview(parsed);
-    document.getElementById('mappingSection')?.classList.add('hidden');
+    STATE.parsedData = result.records;
+    STATE.detectedCols = result.detectedCols || [];
+    STATE.rawRows = result.rawRows || null;
+    STATE.rawCols = result.rawCols || null;
+    renderPreview(result.records);
+    renderMapping(result.detectedCols || []);
     document.getElementById('previewSection').classList.remove('hidden');
-    showStatus(`Se detectaron ${parsed.length} registros.`, 'success');
+    showStatus(`${result.records.length} registros cargados desde Excel.`, 'success');
   } catch(err) {
     showStatus(`Error: ${err?.message || err || 'desconocido'}`, 'error');
   }
-}
-
-function readFileAsDataURL(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = () => reject(new Error('Error al leer el archivo'));
-    reader.readAsDataURL(file);
-  });
-}
-
-function parseGrades(text) {
-  const lines = text.split('\n').filter(l => l.trim());
-  const records = [];
-  let current = {};
-  for (const line of lines) {
-    const t = line.trim();
-    if (!t) continue;
-    const scoreMatch = t.match(/(\d{1,2}(?:[.,]\d{1,2})?)\s*$/);
-    const name = scoreMatch ? t.slice(0, t.lastIndexOf(scoreMatch[1])).trim() : t;
-    if (scoreMatch && name.length > 2) {
-      if (current.nombre) records.push(current);
-      current = { nombre: name, notas: scoreMatch[1] };
-    } else if (current.nombre) {
-      current.notas += ' ' + t;
-    }
-  }
-  if (current.nombre) records.push(current);
-  return records.length > 0 ? records : text.split('\n').filter(l => l.trim()).map((l, i) => ({ nombre: `Registro ${i + 1}`, notas: l.slice(0, 60) }));
 }
 
 function renderPreview(records) {
@@ -450,38 +323,63 @@ function escHtml(s) {
 }
 
 function confirmData() {
-  if (STATE.parsedData && STATE.parsedData.length > 0) {
-    // DEBUG: imprimir datos ANTES de enviar
-    console.log('[Digitar] ***** DATOS A ENVIAR *****');
-    STATE.parsedData.forEach((r, idx) => {
-      console.log('[Digitar] Estudiante #' + (idx+1) + ': ' + r.nombre + ' (' + r.codigo + ')');
-      r.materias.forEach((m, mi) => {
-        console.log('[Digitar]   [' + mi + '] ' + m.nombre + ' → cual=' + m.cualitativo + ' cuant=' + m.cuantitativo);
-      });
-    });
-    console.log('[Digitar] ***** FIN DATOS *****');
-
-    const mode = document.getElementById('modeSelect').value;
-    const speed = parseInt(document.getElementById('speedRange').value, 10);
-    chrome.storage.session.set({
-      injectTask: {
-        data: STATE.parsedData,
-        config: { mode, speed },
-        index: 0
-      }
-    }, () => {
-      showStatus(`Datos listos (${STATE.parsedData.length} registros, modo ${mode}). Enviando...`, 'info');
-      chrome.runtime.sendMessage({
-        type: 'INJECT_START',
-        payload: { mode, speed }
-      }, (res) => {
-        if (res?.ok) showStatus(`Inyectando ${STATE.parsedData.length} registros (${mode})...`, 'success');
-        else if (res?.error) showStatus(res.error, 'error');
-      });
-    });
-  } else {
+  if (!STATE.parsedData || STATE.parsedData.length === 0) {
     showStatus('No hay datos.', 'error');
+    return;
   }
+  const count = STATE.parsedData.length;
+  chrome.runtime.sendMessage({ type: 'CHECK_LICENSE' }, res => {
+    if (res?.valid) {
+      doInject(count);
+    } else {
+      chrome.runtime.sendMessage({ type: 'CHECK_TRIAL' }, trial => {
+        if (trial.remaining >= count) {
+          chrome.runtime.sendMessage({ type: 'USE_TRIAL', payload: { count } }, useResult => {
+            if (useResult.allowed) {
+              doInject(count);
+            } else {
+              showStatus('Solo te quedan ' + useResult.remaining + ' estudiantes de prueba.', 'error');
+            }
+          });
+        } else {
+          if (trial.remaining <= 0) {
+            showStatus('Límite de prueba alcanzado (50 estudiantes). Activá una licencia en Configuración.', 'error');
+          } else {
+            showStatus('Solo te quedan ' + trial.remaining + ' estudiantes de prueba. Cargá un archivo más pequeño.', 'error');
+          }
+        }
+      });
+    }
+  });
+}
+
+function doInject(count) {
+  console.log('[Digitar] ***** DATOS A ENVIAR *****');
+  STATE.parsedData.forEach((r, idx) => {
+    console.log('[Digitar] Estudiante #' + (idx+1) + ': ' + r.nombre + ' (' + r.codigo + ')');
+    r.materias.forEach((m, mi) => {
+      console.log('[Digitar]   [' + mi + '] ' + m.nombre + ' → cual=' + m.cualitativo + ' cuant=' + m.cuantitativo);
+    });
+  });
+  console.log('[Digitar] ***** FIN DATOS *****');
+  const mode = document.getElementById('modeSelect').value;
+  const speed = parseInt(document.getElementById('speedRange').value, 10);
+  chrome.storage.session.set({
+    injectTask: {
+      data: STATE.parsedData,
+      config: { mode, speed },
+      index: 0
+    }
+  }, () => {
+    showStatus('Datos listos (' + count + ' registros, modo ' + mode + '). Enviando...', 'info');
+    chrome.runtime.sendMessage({
+      type: 'INJECT_START',
+      payload: { mode, speed }
+    }, (res) => {
+      if (res?.ok) showStatus('Inyectando ' + count + ' registros (' + mode + ')...', 'success');
+      else if (res?.error) showStatus(res.error, 'error');
+    });
+  });
 }
 
 function clearData() {
@@ -493,13 +391,55 @@ function clearData() {
   chrome.storage.session.remove(['pendingData', 'injectConfig', 'injectTask']);
 }
 
+function loadMachineID() {
+  chrome.runtime.sendMessage({ type: 'GET_MACHINE_ID' }, res => {
+    const el = document.getElementById('machineIDDisplay');
+    if (res?.id) {
+      el.textContent = res.id;
+      el.dataset.id = res.id;
+    } else {
+      el.textContent = 'Error al obtener ID';
+    }
+  });
+}
+
+function copyMachineID() {
+  const id = document.getElementById('machineIDDisplay')?.dataset.id;
+  if (!id) return;
+  navigator.clipboard.writeText(id).then(() => {
+    const btn = document.getElementById('copyMachineIDBtn');
+    const orig = btn.textContent;
+    btn.textContent = '✓ Copiado';
+    setTimeout(() => btn.textContent = orig, 2000);
+  });
+}
+
+function checkLicenseStatus() {
+  chrome.runtime.sendMessage({ type: 'CHECK_LICENSE' }, res => {
+    if (res?.valid) {
+      const expiryText = res.expiry ? ' (vence ' + res.expiry + ')' : '';
+      setLicenseStatus('Licencia activada' + expiryText, 'active');
+    } else if (res?.expired) {
+      setLicenseStatus('Licencia vencida — solicitá una renovación', 'inactive');
+    } else {
+      setLicenseStatus('Inactiva — solicitá una licencia', 'inactive');
+    }
+  });
+}
+
 function activateLicense() {
   const token = document.getElementById('licenseInput').value.trim();
-  if (!token) { setLicenseStatus('Ingresa un token', 'inactive'); return; }
+  if (!token) { setLicenseStatus('Ingresa el token de licencia', 'inactive'); return; }
+  setLicenseStatus('Validando...', 'info');
   chrome.runtime.sendMessage({ type: 'VALIDATE_LICENSE', payload: { token } }, res => {
-    if (res.valid) {
-      setLicenseStatus('Licencia activada', 'active');
-      chrome.storage.session.set({ licenseToken: token });
+    if (res?.valid) {
+      const expiryText = res.expiry ? ' (vence ' + res.expiry + ')' : '';
+      setLicenseStatus('Licencia activada' + expiryText, 'active');
+      document.getElementById('licenseInput').value = '';
+      checkLicenseAccess();
+      // Refresh trial display
+    } else if (res?.expired) {
+      setLicenseStatus('Token vencido', 'inactive');
     } else {
       setLicenseStatus('Token inválido', 'inactive');
     }
