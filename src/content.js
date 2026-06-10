@@ -310,26 +310,19 @@ const INJECTOR = {
   async fillOneSubject(mat, sysSubj) {
     this.log('→ Llenando: "' + sysSubj + '" (Excel mat.nombre="' + mat.nombre + '", cual=' + (mat.cualitativo||'') + ', cuant=' + (mat.cuantitativo!=null?mat.cuantitativo:'') + ')');
     await this.selectSubject(sysSubj);
-    await this.sleep(400);
-    // VERIFICAR select.value DESPUÉS de seleccionar
-    const select = document.querySelector('#Id_Asignatable, select[name="Id_Asignatura"]');
-    if (select) this.log('  🔍 select.value AHORA = "' + select.value + '"');
+    await this.sleep(200);
     await this.fillGradeInputs(mat);
-    await this.sleep(300);
-    // VERIFICAR cuali/cuanti ANTES de guardar
-    const cuali = document.querySelector('#Calif_Cualitativa, input[name="Calif_Cualitativa"]');
-    const cuanti = document.querySelector('#Calif_Cuantitativa, input[name="Calif_Cuantitativa"]');
-    this.log('  🔍 ANTES DE GUARDAR: cuali="' + (cuali?cuali.value:'?') + '" cuanti="' + (cuanti?cuanti.value:'?') + '"');
+    await this.sleep(150);
     await this.clickGuardar();
-    await this.sleep(500);
+    this.notify('Confirmando...');
+    await this.confirmGuardar();
+    this.notify('OK...');
+    await this.dismissSuccess();
     const saved = await this.waitForGradeSaved(sysSubj);
     if (saved) {
-      this.notify('✓ Guardado: ' + sysSubj);
-      const gridRows = document.querySelectorAll('#dgBody tr:not(.dxgvGroupRow), .MuiDataGrid-row, [role="row"]');
-      this.log('  Grid rows:');
-      gridRows.forEach((r, idx) => this.log('    [' + idx + '] ' + r.textContent.replace(/\s+/g, ' ').trim()));
+      this.notify('✓ ' + sysSubj);
     } else {
-      this.notify('⚠ No se encontró ' + sysSubj + ' en el grid después de guardar');
+      this.notify('⚠ No se encontró ' + sysSubj + ' en el grid');
     }
   },
 
@@ -342,9 +335,9 @@ const INJECTOR = {
       if (emptyMsg) emptyMsg.style.display = 'block';
     }
     await this.fillField('CodigoPersonaEstudiante', record.codigo);
-    await this.sleep(300);
+    await this.sleep(200);
     const buscarBtn = this.findButton('Buscar');
-    if (buscarBtn) { buscarBtn.click(); await this.sleep(500); }
+    if (buscarBtn) { buscarBtn.click(); await this.sleep(300); }
     await this.waitForStudentLoad();
   },
 
@@ -430,6 +423,41 @@ const INJECTOR = {
     }
   },
 
+  async confirmGuardar() {
+    const confirmTexts = ['Sí, Guardar', 'Sí', 'Aceptar', 'Confirmar', 'Guardar'];
+    for (let i = 0; i < 30; i++) {
+      if (!this.running) return false;
+      const modal = document.querySelector('[role="dialog"], .MuiDialog-root, .modal, .modal-content, .confirm-dialog');
+      if (modal && (modal.offsetParent !== null || modal.style.display !== 'none')) {
+        for (const txt of confirmTexts) {
+          const exact = this.findButton(txt);
+          if (exact) { this.log('  +++ Click confirmación: "' + txt + '"'); exact.click(); return true; }
+          const partial = Array.from(modal.querySelectorAll('button')).find(b => b.textContent.trim().toLowerCase().includes(txt.toLowerCase()));
+          if (partial) { this.log('  +++ Click confirmación (parcial): "' + txt + '"'); partial.click(); return true; }
+        }
+        this.log('  Modal visible pero sin botón de confirmación');
+        return false;
+      }
+      await this.sleep(100);
+    }
+    this.log('  --- No apareció modal de confirmación, continuando');
+    return false;
+  },
+
+  async dismissSuccess() {
+    const okTexts = ['OK', 'Aceptar', 'Cerrar', 'Continuar'];
+    for (let i = 0; i < 30; i++) {
+      if (!this.running) return;
+      const modal = document.querySelector('[role="dialog"], .MuiDialog-root, .modal, .modal-content');
+      const scope = modal || document;
+      for (const txt of okTexts) {
+        const btn = this.findButton(txt);
+        if (btn && (!modal || scope.contains(btn))) { btn.click(); return; }
+      }
+      await this.sleep(100);
+    }
+  },
+
   findButton(text) {
     return Array.from(document.querySelectorAll('button')).find(b => b.textContent.trim() === text);
   },
@@ -438,7 +466,7 @@ const INJECTOR = {
     for (let i = 0; i < 40; i++) {
       const el = document.getElementById('NombreCompleto');
       if (el && el.value && el.value.trim()) return true;
-      await this.sleep(300);
+      await this.sleep(150);
     }
     return false;
   },
@@ -448,7 +476,7 @@ const INJECTOR = {
       const rows = document.querySelectorAll('#dgBody tr, .MuiDataGrid-row, [role="row"]');
       const found = Array.from(rows).some(r => r.textContent.includes(subjectName));
       if (found) return true;
-      await this.sleep(300);
+      await this.sleep(150);
     }
     return false;
   },

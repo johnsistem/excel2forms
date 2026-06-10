@@ -2,58 +2,68 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Asistente de Accesibilidad</title>
+  <title>Digitar Asistente</title>
   <link rel="stylesheet" href="popup.css">
 </head>
 <body style="background:#111827;">
   <div class="container">
     <header>
-      <h1>Asistente de Accesibilidad Visual</h1>
+      <h1>Digitar Asistente</h1>
       <nav class="tabs">
-        <button class="tab active" data-tab="scanner">Escáner</button>
+        <button class="tab active" data-tab="scanner">Cargar Acta</button>
         <button class="tab" data-tab="settings">Configuración</button>
       </nav>
     </header>
 
     <section id="tab-scanner" class="tab-content active">
-      <div class="upload-zone" id="uploadZone">
-        <div class="upload-icon">+</div>
-        <p class="upload-text">Arrastra un archivo aquí o haz clic para seleccionar</p>
-        <p class="upload-hint">Formatos: Excel (.xlsx, .xls), imagen (JPG, PNG, BMP)</p>
-        <input type="file" id="fileInput" accept=".xlsx,.xls,.csv,image/*" hidden>
+      <div id="licenseBlock" class="license-block">
+        <div class="license-block-icon">🔒</div>
+        <p class="license-block-title">Licencia no activada</p>
+        <p class="license-block-text">Andá a <strong>Configuración</strong> e ingresá tu licencia para usar la extensión.</p>
+        <button class="btn primary" onclick="document.querySelector('[data-tab=settings]').click()">Ir a Configuración</button>
       </div>
 
-      <div id="previewSection" class="hidden">
-        <h3>Vista Previa</h3>
-
-        <div id="mappingSection" class="mapping-section hidden">
-          <h4>Mapeo de Columnas</h4>
-          <p class="mapping-hint">Verificá que cada columna del Excel se asigne a la materia correcta del sistema.</p>
-          <div id="mappingList"></div>
-          <button id="remapBtn" class="btn secondary">Re-aplicar mapeo</button>
-          <hr>
+      <div id="appContent" class="hidden">
+        <div id="trialInfo" class="trial-info hidden"></div>
+        <div class="upload-zone" id="uploadZone">
+          <div class="upload-icon">+</div>
+          <p class="upload-text">Arrastra un archivo aquí o haz clic para seleccionar</p>
+          <p class="upload-hint">Formatos: Excel (.xlsx, .xls), CSV</p>
+          <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" hidden>
         </div>
 
-        <div id="previewTableContainer">
-          <table id="previewTable">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Estudiante</th>
-                <th>Código</th>
-                <th>Materias (Mapeadas)</th>
-              </tr>
-            </thead>
-            <tbody id="previewBody"></tbody>
-          </table>
+        <div id="previewSection" class="hidden">
+          <h3>Vista Previa</h3>
+
+          <div id="mappingSection" class="mapping-section hidden">
+            <h4>Mapeo de Columnas</h4>
+            <p class="mapping-hint">Verificá que cada columna del Excel se asigne a la materia correcta del sistema.</p>
+            <div id="mappingList"></div>
+            <button id="remapBtn" class="btn secondary">Re-aplicar mapeo</button>
+            <hr>
+          </div>
+
+          <div id="previewTableContainer">
+            <table id="previewTable">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Estudiante</th>
+                  <th>Código</th>
+                  <th>Materias (Mapeadas)</th>
+                </tr>
+              </thead>
+              <tbody id="previewBody"></tbody>
+            </table>
+          </div>
+          <div class="preview-actions">
+            <button id="confirmBtn" class="btn primary">Confirmar y Poblar</button>
+            <button id="clearBtn" class="btn secondary">Limpiar</button>
+          </div>
         </div>
-        <div class="preview-actions">
-          <button id="confirmBtn" class="btn primary">Confirmar y Poblar</button>
-          <button id="clearBtn" class="btn secondary">Limpiar</button>
-        </div>
+
+        <div id="statusMessage" class="status hidden"></div>
       </div>
-
-      <div id="statusMessage" class="status hidden"></div>
     </section>
 
     <section id="tab-settings" class="tab-content hidden">
@@ -74,8 +84,14 @@
         </select>
       </div>
       <div class="settings-group">
+        <label>ID de Máquina</label>
+        <div class="machine-id-box" id="machineIDDisplay">Cargando...</div>
+        <button id="copyMachineIDBtn" class="btn secondary" style="font-size:11px;padding:3px 8px">Copiar ID</button>
+        <p class="hint">Este ID identifica tu PC. Enviámelo para generar tu licencia.</p>
+      </div>
+      <div class="settings-group">
         <label for="licenseInput">Clave de Licencia</label>
-        <input type="text" id="licenseInput" placeholder="XXXX-XXXX-XXXX">
+        <input type="text" id="licenseInput" placeholder="Pegá la licencia aquí">
         <button id="activateBtn" class="btn secondary">Activar</button>
         <p id="licenseStatus" class="license-status"></p>
       </div>
