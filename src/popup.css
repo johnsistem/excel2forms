@@ -5,16 +5,16 @@
 }
 
 :root {
-  --bg: #f5f5f5;
-  --surface: #ffffff;
-  --primary: #2563eb;
-  --primary-hover: #1d4ed8;
-  --secondary: #6b7280;
-  --border: #e5e7eb;
-  --text: #1f2937;
-  --text-secondary: #6b7280;
-  --success: #059669;
-  --error: #dc2626;
+  --bg: #111827;
+  --surface: #1f2937;
+  --primary: #3b82f6;
+  --primary-hover: #2563eb;
+  --secondary: #9ca3af;
+  --border: #374151;
+  --text: #e5e7eb;
+  --text-secondary: #9ca3af;
+  --success: #34d399;
+  --error: #f87171;
   --radius: 8px;
 }
 
@@ -69,10 +69,10 @@ h1 {
 }
 
 .tab.active {
-  background: var(--surface);
+  background: #374151;
   color: var(--primary);
   font-weight: 500;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
 }
 
 .tab-content {
@@ -97,7 +97,7 @@ h1 {
 .upload-zone:hover,
 .upload-zone.drag-over {
   border-color: var(--primary);
-  background: #eff6ff;
+  background: #1e3a5f;
 }
 
 .upload-icon {
@@ -142,7 +142,7 @@ h1 {
 }
 
 #previewTable th {
-  background: var(--bg);
+  background: #111827;
   padding: 8px 12px;
   text-align: left;
   font-weight: 500;
@@ -153,11 +153,27 @@ h1 {
 
 #previewTable td {
   padding: 6px 12px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid #374151;
+  color: #d1d5db;
 }
 
 #previewTable tr:last-child td {
   border-bottom: none;
+}
+
+#previewTable tr:hover td {
+  background: #1e293b;
+}
+
+#previewTableContainer::-webkit-scrollbar {
+  width: 8px;
+}
+#previewTableContainer::-webkit-scrollbar-track {
+  background: #1f2937;
+}
+#previewTableContainer::-webkit-scrollbar-thumb {
+  background: #4b5563;
+  border-radius: 4px;
 }
 
 .preview-actions {
@@ -187,12 +203,12 @@ h1 {
 }
 
 .btn.secondary {
-  background: var(--border);
-  color: var(--text);
+  background: #374151;
+  color: #d1d5db;
 }
 
 .btn.secondary:hover {
-  background: #d1d5db;
+  background: #4b5563;
 }
 
 .btn:disabled {
@@ -209,21 +225,21 @@ h1 {
 }
 
 .status.success {
-  background: #ecfdf5;
-  color: var(--success);
-  border: 1px solid #a7f3d0;
+  background: #064e3b;
+  color: #34d399;
+  border: 1px solid #065f46;
 }
 
 .status.error {
-  background: #fef2f2;
-  color: var(--error);
-  border: 1px solid #fecaca;
+  background: #450a0a;
+  color: #f87171;
+  border: 1px solid #7f1d1d;
 }
 
 .status.info {
-  background: #eff6ff;
-  color: var(--primary);
-  border: 1px solid #bfdbfe;
+  background: #0c1929;
+  color: #60a5fa;
+  border: 1px solid #1e3a5f;
 }
 
 .hidden {
@@ -250,8 +266,8 @@ h1 {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   font-size: 13px;
-  background: var(--surface);
-  color: var(--text);
+  background: #111827;
+  color: #e5e7eb;
   margin-bottom: 8px;
 }
 
@@ -259,7 +275,7 @@ h1 {
 .settings-group input[type="text"]:focus {
   outline: none;
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
 }
 
 .license-status {
@@ -280,25 +296,25 @@ h1 {
   color: var(--text-secondary);
   font-size: 12px;
   padding-top: 12px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid #374151;
 }
 
 /* Column mapping section */
 .mapping-section {
   margin-bottom: 12px;
   padding: 10px;
-  background: #f0f9ff;
-  border: 1px solid #bae6fd;
+  background: #0c1929;
+  border: 1px solid #1e3a5f;
   border-radius: 6px;
 }
 .mapping-section h4 {
   font-size: 13px;
   margin-bottom: 4px;
-  color: #0369a1;
+  color: #60a5fa;
 }
 .mapping-hint {
   font-size: 11px;
-  color: #64748b;
+  color: #9ca3af;
   margin-bottom: 8px;
 }
 .mapping-row {
@@ -311,21 +327,23 @@ h1 {
 .mapping-row .orig {
   min-width: 100px;
   font-weight: 600;
-  color: #475569;
-  background: #e2e8f0;
+  color: #d1d5db;
+  background: #374151;
   padding: 2px 6px;
   border-radius: 3px;
   text-align: center;
 }
 .mapping-row .arrow {
-  color: #94a3b8;
+  color: #6b7280;
 }
 .mapping-row input {
   flex: 1;
   padding: 3px 6px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid #4b5563;
   border-radius: 4px;
   font-size: 12px;
+  background: #111827;
+  color: #e5e7eb;
 }
 .mapping-row input:focus {
   outline: 2px solid #3b82f6;

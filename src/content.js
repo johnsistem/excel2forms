@@ -43,8 +43,9 @@ const INJECTOR = {
     this.log('***** FIN DATA *****');
 
     this.running = true;
-    this.index = this.task.index || 0;
-    this.subjectIndex = 0;
+    this.index = 0; // Asegurarnos de empezar desde 0
+    this.subjectIndex = 0; // Asegurarnos de empezar desde 0
+    this.systemSubjects = []; // Reiniciar la lista de materias del sistema
     this.createPanel();
     const cfg = this.task?.config || {};
     const mode = cfg.mode || 'semi';
@@ -103,16 +104,10 @@ const INJECTOR = {
     document.getElementById('dp_stop').onclick = () => this.stop();
   },
 
-  updatePanel(name, pct) {
-    const el = document.getElementById('dp_name');
-    if (el) el.textContent = name;
-    const fill = document.getElementById('dp_fill');
-    if (fill) fill.style.width = pct + '%';
-  },
-
   showNextButton() {
+    this.ensurePanel();
     const actions = document.getElementById('dp_actions');
-    if (!actions) return;
+    if (!actions) { this.notify('ERROR: panel sin acciones'); return; }
     actions.innerHTML = `
       <button class="dp-btn dp-btn-primary" id="dp_next">Siguiente →</button>
       <button class="dp-btn dp-btn-stop" id="dp_stop2">Detener</button>
@@ -124,6 +119,7 @@ const INJECTOR = {
   },
 
   showAutoStatus(hasNext) {
+    this.ensurePanel();
     const actions = document.getElementById('dp_actions');
     if (!actions) return;
     actions.innerHTML = `
@@ -134,85 +130,124 @@ const INJECTOR = {
     if (btn) btn.onclick = () => this.stop();
   },
 
+  updatePanel(name, pct) {
+    this.ensurePanel();
+    const el = document.getElementById('dp_name');
+    if (el) el.textContent = name;
+    const fill = document.getElementById('dp_fill');
+    if (fill) fill.style.width = pct + '%';
+  },
+
   async injectNextSemi() {
-    if (!this.running) return;
-    if (this.index >= this.data.length) {
-      this.updatePanel('Completado ✓', 100);
-      this.showAutoStatus(false);
-      this.notify('Llenado completado.');
-      return;
-    }
-    const record = this.data[this.index];
+    while (this.running && this.index < this.data.length) {
+      const record = this.data[this.index];
 
-    if (this.subjectIndex === 0) {
-      await this.searchStudent(record);
-      this.systemSubjects = this.getSystemSubjects();
-      this.notify('Sistema: ' + this.systemSubjects.length + ' materias: ' + this.systemSubjects.join(', '));
-    }
+      if (this.subjectIndex === 0) {
+        this.log('=== ESTUDIANTE #' + (this.index + 1) + '/' + this.data.length + ': ' + record.nombre + ' ===');
+        await this.searchStudent(record);
+        if (!this.running) return;
+        this.systemSubjects = this.getSystemSubjects();
+        this.log('Materias del SISTEMA: ' + this.systemSubjects.join(' | '));
+      }
 
-    while (this.subjectIndex < this.systemSubjects.length) {
-      const sysSubj = this.systemSubjects[this.subjectIndex];
-      const mat = record.materias.find(m => this.norm(m.nombre) === this.norm(sysSubj));
-      this.subjectIndex++;
-      if (mat) {
-        const totalOps = this.data.reduce((a, d) => a + d.materias.length, 0);
-        const opsDone = this.data.slice(0, this.index).reduce((a, d) => a + d.materias.length, 0) + this.subjectIndex;
-        const pct = Math.round((opsDone / totalOps) * 100);
-        this.updatePanel(`#${this.index + 1}/${this.data.length} ${record.nombre} — ${sysSubj}`, pct);
-        await this.fillOneSubject(mat, sysSubj);
-        break;
-      } else {
-        this.notify('⏭ ' + sysSubj + ' no está en el Excel, saltando');
+      let filled = false;
+      while (this.subjectIndex < this.systemSubjects.length && this.running) {
+        const sysSubj = this.systemSubjects[this.subjectIndex];
+        const mat = record.materias.find(m => this.norm(m.nombre) === this.norm(sysSubj));
+        this.subjectIndex++;
+
+        if (mat) {
+          filled = true;
+          this.log('✓ ' + sysSubj + ' — cual: ' + (mat.cualitativo || '—') + ' / cuant: ' + (mat.cuantitativo || '—'));
+          const totalOps = this.data.reduce((a, d) => a + d.materias.length, 0);
+          const opsDone = this.data.slice(0, this.index).reduce((a, d) => a + d.materias.length, 0) +
+                          record.materias.findIndex(m => this.norm(m.nombre) === this.norm(sysSubj)) + 1;
+          const pct = Math.round((opsDone / totalOps) * 100);
+          this.updatePanel(`${record.nombre} — ${sysSubj}`, pct);
+          await this.fillOneSubject(mat, sysSubj);
+          if (!this.running) return;
+          break;
+        } else {
+          this.log('⏭ ' + sysSubj + ' no está en el Excel, saltando');
+        }
+      }
+
+      if (!this.running) return;
+
+      if (filled) {
+        this.showNextButton();
+        await this.waitForClick();
+        continue;
+      }
+
+      this.notify('✓ ' + record.nombre + ' completado');
+      this.subjectIndex = 0;
+      this.index++;
+
+      if (this.index < this.data.length && this.running) {
+        this.updatePanel('Siguiente estudiante →', 0);
+        this.showNextButton();
+        await this.waitForClick();
       }
     }
 
-    if (this.subjectIndex >= this.systemSubjects.length) {
-      this.subjectIndex = 0;
-      this.index++;
+    if (this.running) {
+      this.updatePanel('Completado ✓', 100);
+      this.showAutoStatus(false);
+      this.notify('Llenado completado.');
     }
+  },
 
-    this.showNextButton();
-    await new Promise(resolve => { this.resolveNext = resolve; });
-    this.resolveNext = null;
-    this.injectNextSemi();
+  waitForClick() {
+    this.ensurePanel();
+    return new Promise(resolve => { this.resolveNext = resolve; });
+  },
+
+  ensurePanel() {
+    if (!document.getElementById('__digitar_panel')) {
+      this.panel = null;
+      this.createPanel();
+    }
   },
 
   async injectPerStudent() {
-    if (!this.running) return;
-    if (this.index >= this.data.length) {
+    while (this.running && this.index < this.data.length) {
+      const record = this.data[this.index];
+      this.log('=== ESTUDIANTE #' + (this.index + 1) + '/' + this.data.length + ': ' + record.nombre + ' ===');
+      await this.searchStudent(record);
+      if (!this.running) return;
+      const systemSubjects = this.getSystemSubjects();
+      this.log('Materias del SISTEMA: ' + systemSubjects.join(' | '));
+      let filledCount = 0;
+      for (let s = 0; s < systemSubjects.length; s++) {
+        if (!this.running) break;
+        const sysSubj = systemSubjects[s];
+        const mat = record.materias.find(m => this.norm(m.nombre) === this.norm(sysSubj));
+        if (!mat) { this.log('⏭ ' + sysSubj + ' no está en el Excel, saltando'); continue; }
+        filledCount++;
+        this.log('✓ ' + sysSubj + ' → ' + mat.cualitativo + ' ' + (mat.cuantitativo||''));
+        const pct = Math.round(((s + 1) / systemSubjects.length) * 100);
+        this.updatePanel(`${record.nombre} — ${sysSubj}`, pct);
+        await this.fillOneSubject(mat, sysSubj);
+        if (!this.running) return;
+        if (s < systemSubjects.length - 1) {
+          await this.sleep((this.config?.speed || 8) * 1000);
+        }
+      }
+      if (!filledCount) this.notify('⚠ ' + record.nombre + ' no tiene materias que coincidan');
+      this.notify('✓ ' + record.nombre + ' completado');
+      this.index++;
+      if (this.index < this.data.length && this.running) {
+        this.updatePanel('Siguiente estudiante →', 100);
+        this.showNextButton();
+        await this.waitForClick();
+      }
+    }
+    if (this.running) {
       this.updatePanel('Completado ✓', 100);
       this.showAutoStatus(false);
       this.notify('Llenado completado.');
-      return;
     }
-    const record = this.data[this.index];
-    this.log('=== ESTUDIANTE #' + (this.index + 1) + '/' + this.data.length + ': ' + record.nombre + ' ===');
-    await this.searchStudent(record);
-    const systemSubjects = this.getSystemSubjects();
-    this.log('Materias del SISTEMA: ' + systemSubjects.join(' | '));
-    let filledCount = 0;
-    for (let s = 0; s < systemSubjects.length; s++) {
-      if (!this.running) return;
-      const sysSubj = systemSubjects[s];
-      const mat = record.materias.find(m => this.norm(m.nombre) === this.norm(sysSubj));
-      if (!mat) { this.log('⏭ ' + sysSubj + ' no está en el Excel, saltando'); continue; }
-      filledCount++;
-      this.log('✓ ' + sysSubj + ' → ' + mat.cualitativo + ' ' + (mat.cuantitativo||''));
-      const pct = Math.round(((s + 1) / systemSubjects.length) * 100);
-      this.updatePanel(`#${this.index + 1}/${this.data.length} ${record.nombre} — ${sysSubj}`, pct);
-      await this.fillOneSubject(mat, sysSubj);
-      if (s < systemSubjects.length - 1) {
-        await this.sleep((this.config?.speed || 8) * 1000);
-      }
-    }
-    if (!filledCount) this.notify('⚠ ' + record.nombre + ' no tiene materias que coincidan');
-    this.notify('✓ ' + record.nombre + ' completado');
-    this.index++;
-    this.updatePanel(`#${this.index}/${this.data.length} ${this.index >= this.data.length ? 'Completado ✓' : 'Siguiente estudiante →'}`, 100);
-    this.showNextButton();
-    await new Promise(resolve => { this.resolveNext = resolve; });
-    this.resolveNext = null;
-    this.injectPerStudent();
   },
 
   async injectAll() {
@@ -262,7 +297,8 @@ const INJECTOR = {
   getSystemSubjects() {
     const select = document.querySelector('select[name="Id_Asignatura"], #Id_Asignatable, #Id_Asignatura');
     if (select && select.tagName === 'SELECT') {
-      return Array.from(select.options).map((o, i) => o.textContent.trim()).filter(Boolean);
+      return Array.from(select.options).map((o, i) => o.textContent.trim()).filter(Boolean)
+        .filter((name, i, arr) => name !== '-- Seleccione --' && name !== '' && arr.indexOf(name) === i);
     }
     return [];
   },
@@ -298,6 +334,13 @@ const INJECTOR = {
   },
 
   async searchStudent(record) {
+    // Limpiar grid anterior para simular cambio de estudiante real
+    const gridBody = document.getElementById('dgBody');
+    if (gridBody) {
+      gridBody.innerHTML = '';
+      const emptyMsg = document.getElementById('emptyGridMsg');
+      if (emptyMsg) emptyMsg.style.display = 'block';
+    }
     await this.fillField('CodigoPersonaEstudiante', record.codigo);
     await this.sleep(300);
     const buscarBtn = this.findButton('Buscar');
@@ -420,7 +463,8 @@ const INJECTOR = {
   stop() {
     this.running = false;
     if (this.resolveNext) { this.resolveNext(); this.resolveNext = null; }
-    if (this.panel) { this.panel.remove(); this.panel = null; }
+    if (this.panel && this.panel.parentNode) { this.panel.remove(); }
+    this.panel = null;
     this.notify('Llenado detenido.');
   },
 
@@ -480,7 +524,9 @@ document.addEventListener('__digitar_inject_demo', function(e) {
     config: { mode: payload.mode || 'auto', speed: payload.speed || 3 },
     index: 0
   };
+  INJECTOR.index = 0;
   INJECTOR.subjectIndex = 0;
+  INJECTOR.systemSubjects = [];
   INJECTOR.notify('🎬 Demo data recibida: ' + payload.data.length + ' estudiantes, modo=' + (payload.mode || 'auto'));
   INJECTOR.start();
 });
