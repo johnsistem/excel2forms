@@ -23,7 +23,12 @@
       "run_at": "document_idle"
     },
     {
-      "matches": ["http://localhost/*", "http://127.0.0.1/*"],
+      "matches": ["http://localhost/*", "http://127.0.0.1/*", "http://localhost:8000/*", "http://0.0.0.0:8000/*"],
+      "js": ["src/content.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["file:///*"],
       "js": ["src/content.js"],
       "run_at": "document_idle"
     }
@@ -38,7 +43,8 @@
   ],
   "host_permissions": [
     "*://serviciosenlinea.mined.gob.ni/*",
-    "http://localhost/*",
-    "http://127.0.0.1/*"
+    "http://localhost:*/*",
+    "http://127.0.0.1:*/*",
+    "file:///*"
   ]
 }

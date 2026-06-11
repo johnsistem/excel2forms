@@ -11,6 +11,7 @@
       <h1>Digitar Asistente</h1>
       <nav class="tabs">
         <button class="tab active" data-tab="scanner">Cargar Acta</button>
+        <button class="tab" data-tab="generic">Formulario Genérico</button>
         <button class="tab" data-tab="settings">Configuración</button>
       </nav>
     </header>
@@ -63,6 +64,77 @@
         </div>
 
         <div id="statusMessage" class="status hidden"></div>
+      </div>
+    </section>
+
+    <section id="tab-generic" class="tab-content hidden">
+      <div id="gfStatusMessage" class="status hidden"></div>
+
+      <div class="upload-zone" id="gfUploadZone">
+        <div class="upload-icon">+</div>
+        <p class="upload-text">Arrastra un archivo Excel aquí o haz clic para seleccionar</p>
+        <p class="upload-hint">Formatos: Excel (.xlsx, .xls)</p>
+        <input type="file" id="gfFileInput" accept=".xlsx,.xls" hidden>
+      </div>
+
+      <div id="gfPreviewSection" class="hidden" style="margin-top:12px">
+        <h3>Vista Previa</h3>
+        <div style="max-height:180px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface)">
+          <table style="width:100%;border-collapse:collapse;font-size:12px">
+            <thead>
+              <tr>
+                <th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--border);position:sticky;top:0;background:#111827">#</th>
+                <th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--border);position:sticky;top:0;background:#111827">Columnas</th>
+              </tr>
+            </thead>
+            <tbody id="gfPreviewBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <button id="gfDetectBtn" class="btn primary" style="margin-top:12px;width:100%">🔍 Detectar Campos en la Página</button>
+
+      <div id="gfFieldsSection" class="hidden" style="margin-top:12px;padding:10px;background:#0c1929;border:1px solid #1e3a5f;border-radius:6px">
+        <h4 style="font-size:13px;margin-bottom:4px;color:#60a5fa">Campos Detectados</h4>
+        <p style="font-size:11px;color:#9ca3af;margin-bottom:8px">Campos encontrados en la página actual.</p>
+        <div id="gfFieldsList" style="font-size:12px"></div>
+      </div>
+
+      <div id="gfMappingSection" class="hidden" style="margin-top:12px;padding:10px;background:#0c1929;border:1px solid #1e3a5f;border-radius:6px">
+        <h4 style="font-size:13px;margin-bottom:4px;color:#60a5fa">Mapeo: Columna Excel → Campo en Página</h4>
+        <p style="font-size:11px;color:#9ca3af;margin-bottom:8px">Seleccioná a qué campo de la página corresponde cada columna del Excel.</p>
+        <div id="gfMappingContainer" style="font-size:12px"></div>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button id="gfSaveConfigBtn" class="btn secondary" style="flex:1;font-size:11px">💾 Guardar Config</button>
+        <button id="gfLoadConfigBtn" class="btn secondary" style="flex:1;font-size:11px">📂 Cargar Config</button>
+      </div>
+
+      <div id="gfConfigSection" class="hidden" style="margin-top:8px;padding:8px;background:#0c1929;border:1px solid #1e3a5f;border-radius:6px">
+        <h4 style="font-size:13px;margin-bottom:4px;color:#60a5fa">Configuraciones Guardadas</h4>
+        <div id="gfConfigList" style="font-size:12px"></div>
+      </div>
+
+      <div class="settings-group" style="margin-top:12px">
+        <label for="gfModeSelect">Modo de avance</label>
+        <select id="gfModeSelect">
+          <option value="auto" selected>Automático (sin pausa)</option>
+          <option value="manual">Manual (fila por fila)</option>
+        </select>
+      </div>
+      <div class="settings-group">
+        <label for="gfSpeedRange">Delay entre campos</label>
+        <select id="gfSpeedRange">
+          <option value="200">Rápido (0.2s)</option>
+          <option value="500" selected>Normal (0.5s)</option>
+          <option value="1000">Lento (1s)</option>
+        </select>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button id="gfExecuteBtn" class="btn primary" style="flex:1">▶ Ejecutar</button>
+        <button id="gfStopBtn" class="btn secondary" style="flex:1">⏹ Detener</button>
       </div>
     </section>
 

@@ -45,6 +45,12 @@ async function validateLicense(token) {
   return { valid: hashPart.toLowerCase() === expected, expiry: expiryStr };
 }
 
+async function findCurrentTab() {
+  const tabs = await chrome.tabs.query({});
+  const normal = tabs.filter(t => t.status === 'complete' && t.url && !t.url.startsWith('chrome-') && !t.url.startsWith('about:'));
+  return normal.find(t => t.active && t.highlighted) || normal[0] || null;
+}
+
 async function findTargetTab() {
   const patterns = [
     '*://serviciosenlinea.mined.gob.ni/*',
@@ -97,6 +103,63 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         const result = await chrome.storage.session.get('injectTask');
         const injectTask = result.injectTask || null;
         await chrome.tabs.sendMessage(tab.id, { type: 'INJECT_START', payload: injectTask });
+        sendResponse({ ok: true });
+      })();
+      return true;
+
+    case 'DETECT_FIELDS':
+      (async () => {
+        const tab = await findCurrentTab();
+        if (!tab) {
+          sendResponse({ error: 'No se encontró una pestaña activa.' });
+          return;
+        }
+        try {
+          await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            files: ['src/content.js']
+          });
+          await new Promise(r => setTimeout(r, 400));
+          const result = await chrome.tabs.sendMessage(tab.id, { type: 'DETECT_FIELDS' });
+          sendResponse({ fields: result.fields });
+        } catch (e) {
+          sendResponse({ error: 'Error: ' + (e.message || e) + ' | URL: ' + (tab.url || '?') });
+        }
+      })();
+      return true;
+
+    case 'GENERIC_FILL_START':
+      (async () => {
+        const tab = await findCurrentTab();
+        if (!tab) {
+          sendResponse({ error: 'No se encontró una pestaña activa.' });
+          return;
+        }
+        try {
+          await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            files: ['src/content.js']
+          });
+          await new Promise(r => setTimeout(r, 400));
+          await chrome.tabs.sendMessage(tab.id, {
+            type: 'GENERIC_FILL_START',
+            payload: message.payload
+          });
+          sendResponse({ ok: true });
+        } catch (e) {
+          sendResponse({ error: 'Error: ' + (e.message || e) });
+        }
+      })();
+      return true;
+
+    case 'GENERIC_FILL_STOP':
+      (async () => {
+        const tab = await findCurrentTab();
+        if (tab) {
+          try {
+            await chrome.tabs.sendMessage(tab.id, { type: 'GENERIC_FILL_STOP' });
+          } catch (e) { /* ignore if not loaded */ }
+        }
         sendResponse({ ok: true });
       })();
       return true;

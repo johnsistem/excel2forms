@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('copyMachineIDBtn').addEventListener('click', copyMachineID);
   loadMachineID();
   checkLicenseStatus();
+  initGenericTab();
 });
 
 const STATE = { parsedData: null, detectedCols: [], rawRows: null, rawCols: null };
@@ -462,4 +463,280 @@ function setLicenseStatus(msg, type) {
   const el = document.getElementById('licenseStatus');
   el.textContent = msg;
   el.className = `license-status ${type}`;
+}
+
+// ───── Formulario Genérico ─────
+const GF = {
+  excelData: null,
+  excelCols: [],
+  detectedFields: [],
+  fileName: '',
+};
+
+function gfShowStatus(msg, type) {
+  const el = document.getElementById('gfStatusMessage');
+  if (!el) return;
+  el.textContent = msg;
+  el.className = `status ${type}`;
+  el.classList.remove('hidden');
+}
+
+function initGenericTab() {
+  const zone = document.getElementById('gfUploadZone');
+  const input = document.getElementById('gfFileInput');
+  if (!zone) return;
+  zone.addEventListener('click', () => input.click());
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault(); e.stopPropagation();
+    zone.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) processFileGeneric(file);
+  });
+  input.addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (file) processFileGeneric(file);
+  });
+  document.getElementById('gfDetectBtn').addEventListener('click', detectFields);
+  document.getElementById('gfExecuteBtn').addEventListener('click', executeGenericFill);
+  document.getElementById('gfStopBtn').addEventListener('click', stopGenericFill);
+  document.getElementById('gfSaveConfigBtn').addEventListener('click', saveGenericConfig);
+  document.getElementById('gfLoadConfigBtn').addEventListener('click', loadGenericConfigs);
+}
+
+async function processFileGeneric(file) {
+  if (!/\.(xlsx|xls)$/i.test(file.name)) {
+    gfShowStatus('Formato no soportado. Usá Excel (.xlsx, .xls).', 'error');
+    return;
+  }
+  try {
+    gfShowStatus('Leyendo Excel...', 'info');
+    const buf = await readFileAsArrayBuffer(file);
+    const result = parseExcelGeneric(new Uint8Array(buf));
+    if (!result || !result.rows || result.rows.length === 0) {
+      gfShowStatus('No se encontraron datos en el archivo.', 'error');
+      return;
+    }
+    GF.excelData = result.rows;
+    GF.excelCols = result.cols;
+    GF.fileName = file.name;
+    renderGenericPreview(result.rows, result.cols);
+    document.getElementById('gfPreviewSection').classList.remove('hidden');
+    // Re-render mapping if fields already detected
+    if (GF.detectedFields.length > 0) renderMappingUI();
+    gfShowStatus(`${result.rows.length} registros cargados desde Excel.`, 'success');
+  } catch(err) {
+    gfShowStatus(`Error: ${err?.message || err || 'desconocido'}`, 'error');
+  }
+}
+
+function parseExcelGeneric(buf) {
+  const wb = XLSX.read(buf, { type: 'array' });
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+  const nonEmpty = rows.filter(r => r.some(c => c !== ''));
+  if (nonEmpty.length < 2) return null;
+  const cols = nonEmpty[0].map(h => String(h).trim()).filter(Boolean);
+  const dataRows = nonEmpty.slice(1).filter(r => r.some(c => String(c).trim() !== ''));
+  const result = dataRows.map(r => {
+    const obj = {};
+    cols.forEach((col, i) => { obj[col] = r[i] !== undefined ? String(r[i]).trim() : ''; });
+    return obj;
+  });
+  return { rows: result, cols };
+}
+
+function renderGenericPreview(rows, cols) {
+  const tbody = document.getElementById('gfPreviewBody');
+  tbody.innerHTML = '';
+  const summary = cols.join(', ');
+  rows.slice(0, 15).forEach((r, i) => {
+    const tr = document.createElement('tr');
+    const vals = cols.map(c => (r[c] || '').slice(0, 25)).join(' | ');
+    tr.innerHTML = `<td style="padding:4px 8px;border-bottom:1px solid #374151;color:#9ca3af;font-size:11px">${i + 1}</td><td style="padding:4px 8px;border-bottom:1px solid #374151;color:#d1d5db;font-size:11px">${escHtml(vals)}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function detectFields() {
+  const btn = document.getElementById('gfDetectBtn');
+  btn.disabled = true;
+  btn.textContent = 'Detectando...';
+  chrome.runtime.sendMessage({ type: 'DETECT_FIELDS' }, res => {
+    btn.disabled = false;
+    btn.textContent = '🔍 Detectar Campos en la Página';
+    if (res?.fields && res.fields.length > 0) {
+      GF.detectedFields = res.fields;
+      renderDetectedFields(res.fields);
+      renderMappingUI();
+      gfShowStatus(`${res.fields.length} campos detectados en la página.`, 'success');
+    } else if (res?.fields && res.fields.length === 0) {
+      gfShowStatus('No se encontraron campos (input/select/textarea) en la página.', 'info');
+    } else if (res?.error) {
+      gfShowStatus(res.error, 'error');
+    } else {
+      gfShowStatus('No se pudo detectar campos. ¿Estás en una página con formulario?', 'error');
+    }
+  });
+}
+
+function renderDetectedFields(fields) {
+  const list = document.getElementById('gfFieldsList');
+  list.innerHTML = '';
+  fields.forEach(f => {
+    const div = document.createElement('div');
+    div.style.cssText = 'display:flex;align-items:center;gap:6px;padding:4px 6px;margin-bottom:3px;background:#1f2937;border-radius:4px;font-size:11px';
+    div.innerHTML = `<code style="color:#f59e0b;font-size:11px">${escHtml(f.selector)}</code> <span style="color:#d1d5db;flex:1">${escHtml(f.label)}</span> <span style="color:#6b7280;font-size:10px">${f.tag}${f.type ? `[${f.type}]` : ''}</span>`;
+    list.appendChild(div);
+  });
+  document.getElementById('gfFieldsSection').classList.remove('hidden');
+}
+
+function renderMappingUI() {
+  const container = document.getElementById('gfMappingContainer');
+  container.innerHTML = '';
+  document.getElementById('gfMappingSection').classList.remove('hidden');
+  if (GF.excelCols.length === 0) {
+    container.innerHTML = '<p style="color:#9ca3af;font-size:12px">Cargá un Excel primero para ver las columnas disponibles.</p>';
+    return;
+  }
+  if (GF.detectedFields.length === 0) {
+    container.innerHTML = '<p style="color:#9ca3af;font-size:12px">Primero detectá los campos de la página.</p>';
+    return;
+  }
+  GF.excelCols.forEach(col => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:4px';
+    const label = document.createElement('span');
+    label.style.cssText = 'min-width:80px;font-weight:600;color:#d1d5db;background:#374151;padding:2px 6px;border-radius:3px;text-align:center;font-size:11px';
+    label.textContent = col;
+    const arrow = document.createElement('span');
+    arrow.style.cssText = 'color:#6b7280;font-size:11px';
+    arrow.textContent = '→';
+    const select = document.createElement('select');
+    select.style.cssText = 'flex:1;padding:3px 6px;border:1px solid #4b5563;border-radius:4px;font-size:11px;background:#111827;color:#e5e7eb';
+    select.innerHTML = '<option value="">— Sin mapear —</option>';
+    GF.detectedFields.forEach(f => {
+      const opt = document.createElement('option');
+      opt.value = f.selector;
+      opt.textContent = `${f.label} (${f.selector})`;
+      select.appendChild(opt);
+    });
+    row.appendChild(label);
+    row.appendChild(arrow);
+    row.appendChild(select);
+    container.appendChild(row);
+  });
+}
+
+function buildMapping() {
+  const selects = document.querySelectorAll('#gfMappingContainer select');
+  const mapping = [];
+  selects.forEach((sel, i) => {
+    if (sel.value && GF.excelCols[i]) {
+      mapping.push({ excelColumn: GF.excelCols[i], selector: sel.value });
+    }
+  });
+  return mapping;
+}
+
+function saveGenericConfig() {
+  const name = prompt('Nombre para esta configuración:', GF.fileName || 'Config');
+  if (!name) return;
+  const mapping = buildMapping();
+  if (mapping.length === 0) {
+    gfShowStatus('No hay campos mapeados. Seleccioná al menos un campo.', 'error');
+    return;
+  }
+  const mode = document.getElementById('gfModeSelect').value;
+  const delay = parseInt(document.getElementById('gfSpeedRange').value, 10);
+  const config = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
+    name,
+    fields: mapping,
+    mode,
+    delay,
+  };
+  chrome.storage.local.get('genericConfigs', result => {
+    const configs = result.genericConfigs || [];
+    configs.push(config);
+    chrome.storage.local.set({ genericConfigs: configs }, () => {
+      gfShowStatus(`Configuración "${name}" guardada localmente.`, 'success');
+    });
+  });
+}
+
+function loadGenericConfigs() {
+  chrome.storage.local.get('genericConfigs', result => {
+    const configs = result.genericConfigs || [];
+    const container = document.getElementById('gfConfigList');
+    container.innerHTML = '';
+    if (configs.length === 0) {
+      container.innerHTML = '<p style="color:#9ca3af;font-size:12px">No hay configuraciones guardadas.</p>';
+    } else {
+      configs.forEach((cfg, i) => {
+        const div = document.createElement('div');
+        div.style.cssText = 'display:flex;align-items:center;gap:6px;padding:4px 6px;margin-bottom:3px;background:#1f2937;border-radius:4px';
+        div.innerHTML = `<span style="flex:1;color:#d1d5db;font-size:11px">${escHtml(cfg.name)} (${cfg.fields.length} campos)</span>
+          <button style="background:#3b82f6;color:#fff;border:none;border-radius:3px;padding:2px 8px;cursor:pointer;font-size:10px" data-idx="${i}">Cargar</button>
+          <button style="background:#ef4444;color:#fff;border:none;border-radius:3px;padding:2px 8px;cursor:pointer;font-size:10px" data-idx="${i}">Eliminar</button>`;
+        div.querySelectorAll('button')[0].onclick = () => applyGenericConfig(cfg);
+        div.querySelectorAll('button')[1].onclick = () => deleteGenericConfig(i);
+        container.appendChild(div);
+      });
+    }
+    document.getElementById('gfConfigSection').classList.remove('hidden');
+  });
+}
+
+function applyGenericConfig(cfg) {
+  const selects = document.querySelectorAll('#gfMappingContainer select');
+  selects.forEach(sel => {
+    const row = sel.closest('div');
+    const colLabel = row?.querySelector('span')?.textContent;
+    const match = cfg.fields.find(f => f.excelColumn === colLabel);
+    if (match) sel.value = match.selector;
+  });
+  document.getElementById('gfModeSelect').value = cfg.mode || 'auto';
+  document.getElementById('gfSpeedRange').value = cfg.delay || 500;
+  gfShowStatus(`Config "${cfg.name}" cargada. Revisá el mapeo antes de ejecutar.`, 'success');
+}
+
+function deleteGenericConfig(idx) {
+  chrome.storage.local.get('genericConfigs', result => {
+    const configs = result.genericConfigs || [];
+    configs.splice(idx, 1);
+    chrome.storage.local.set({ genericConfigs: configs }, () => {
+      loadGenericConfigs();
+      gfShowStatus('Configuración eliminada.', 'info');
+    });
+  });
+}
+
+function executeGenericFill() {
+  if (!GF.excelData || GF.excelData.length === 0) {
+    gfShowStatus('No hay datos de Excel. Cargá un archivo primero.', 'error');
+    return;
+  }
+  const mapping = buildMapping();
+  if (mapping.length === 0) {
+    gfShowStatus('No hay campos mapeados. Seleccioná al menos una columna → campo.', 'error');
+    return;
+  }
+  const mode = document.getElementById('gfModeSelect').value;
+  const delay = parseInt(document.getElementById('gfSpeedRange').value, 10);
+  gfShowStatus(`Ejecutando ${GF.excelData.length} registros...`, 'info');
+  chrome.runtime.sendMessage({
+    type: 'GENERIC_FILL_START',
+    payload: { rows: GF.excelData, fields: mapping, config: { mode, delay } }
+  }, res => {
+    if (res?.ok) gfShowStatus(`Inyectando ${GF.excelData.length} registros...`, 'success');
+    else if (res?.error) gfShowStatus(res.error, 'error');
+  });
+}
+
+function stopGenericFill() {
+  chrome.runtime.sendMessage({ type: 'GENERIC_FILL_STOP' });
+  gfShowStatus('Llenado detenido.', 'info');
 }
