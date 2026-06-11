@@ -19,8 +19,6 @@
 - [x] MANUAL.md creado
 
 ## Pendientes
-- [ ] Analizar formatos de actas por modalidad y ajustar parser
-- [ ] Validación visual: checkmarks en panel o resumen final
 - [ ] Limpiar debug logging excesivo (opcional)
 
 ## Escalar (futuro)

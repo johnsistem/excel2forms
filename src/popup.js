@@ -416,13 +416,17 @@ function copyMachineID() {
 
 function checkLicenseStatus() {
   chrome.runtime.sendMessage({ type: 'CHECK_LICENSE' }, res => {
+    const section = document.getElementById('licenseActivationSection');
     if (res?.valid) {
       const expiryText = res.expiry ? ' (vence ' + res.expiry + ')' : '';
-      setLicenseStatus('Licencia activada' + expiryText, 'active');
+      setLicenseStatus('✓ Licencia activada' + expiryText, 'active');
+      if (section) section.classList.add('hidden');
     } else if (res?.expired) {
-      setLicenseStatus('Licencia vencida — solicitá una renovación', 'inactive');
+      setLicenseStatus('✗ Licencia vencida — solicitá una renovación', 'inactive');
+      if (section) section.classList.remove('hidden');
     } else {
-      setLicenseStatus('Inactiva — solicitá una licencia', 'inactive');
+      setLicenseStatus('Inactiva — pegá tu licencia abajo', 'inactive');
+      if (section) section.classList.remove('hidden');
     }
   });
 }
@@ -434,14 +438,15 @@ function activateLicense() {
   chrome.runtime.sendMessage({ type: 'VALIDATE_LICENSE', payload: { token } }, res => {
     if (res?.valid) {
       const expiryText = res.expiry ? ' (vence ' + res.expiry + ')' : '';
-      setLicenseStatus('Licencia activada' + expiryText, 'active');
+      setLicenseStatus('✓ Licencia activada' + expiryText, 'active');
       document.getElementById('licenseInput').value = '';
+      const section = document.getElementById('licenseActivationSection');
+      if (section) section.classList.add('hidden');
       checkLicenseAccess();
-      // Refresh trial display
     } else if (res?.expired) {
-      setLicenseStatus('Token vencido', 'inactive');
+      setLicenseStatus('✗ Token vencido', 'inactive');
     } else {
-      setLicenseStatus('Token inválido', 'inactive');
+      setLicenseStatus('✗ Token inválido', 'inactive');
     }
   });
 }

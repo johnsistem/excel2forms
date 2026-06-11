@@ -1,0 +1,148 @@
+===============================================================================
+  CONTEXTO COMPLETO - DigitarExtension (Asistente de Accesibilidad Visual)
+===============================================================================
+  Rama actual: modalidad-mined
+  Último merge: dev (sistema de licencias completo)
+  Fecha: 2026-06-10
+===============================================================================
+
+1. DESCRIPCIÓN GENERAL
+───────────────────────
+Extensión Chrome Manifest V3 para digitalizar actas de notas del MINED
+(Nicaragua) offline-first. Se opera desde una memoria USB.
+
+2. ESTRUCTURA DE ARCHIVOS
+──────────────────────────
+├── manifest.json          - Config MV3, permisos, content scripts
+├── webpack.config.js      - Build con CopyPlugin + Terser
+├── package.json           - Dependencias: xlsx, tesseract.js (ya no usado)
+├── tools/
+│   └── generar-licencia.js - Script para generar tokens (solo desarrollador)
+├── src/
+│   ├── background.js      - Service worker: licencias, trial, machine ID
+│   ├── popup.html         - UI con pestañas Cargar Acta / Configuración  
+│   ├── popup.css          - Tema oscuro completo
+│   ├── popup.js           - Lógica del popup: Excel parser, confirmar, licencia
+│   └── content.js         - Content script: inyección en MINED + panel flotante
+├── sandbox.html           - Simulador del MINED para pruebas locales
+├── dist/                  - Build output
+├── dist-usb/              - Build ofuscado para USB
+├── MANUAL.md              - Manual de usuario/desarrollador
+├── TAREAS.md              - Checklist de completado
+├── PLAN.md                - Plan de implementación original
+└── contexto               - Este archivo
+
+3. COMPONENTES
+───────────────
+
+3a. background.js (Service Worker)
+─────────────────────────────────
+- generateMachineID(): SHA-256(chrome.runtime.id + UUID) → 32 chars hex
+- validateLicense(token): SHA-256(machineID + expiry + SECRET) → compara hash
+- tryUseTrial(count): contador de hasta 50 estudiantes gratis
+- VALIDATE_LICENSE: verifica token, guarda en chrome.storage.local
+- CHECK_LICENSE: consulta si hay licenseValid en storage
+- CHECK_TRIAL: devuelve cuántos estudiantes quedan de prueba
+- USE_TRIAL: descuenta del contador trial
+- INJECT_START: inicia inyección (no bloquea por licencia en background)
+
+3b. popup.js (Popup)
+────────────────────
+- Carga Excel con SheetJS (solo .xlsx/.xls)
+- SUBJECT_MAP: mapea nombres cortos a nombres completos del MINED
+- parseCell(): extrae cualitativo (AA/AS/AF/AI/A/B/C/D/F) + cuantitativo
+- parseExcel(): detecta columnas automáticamente (nombre, código, materias)
+- renderPreview(): tabla con estudiantes y materias
+- renderMapping(): permite re-mapear columnas manualmente
+- confirmData(): verifica licencia → si válida o trial → doInject()
+- doInject(): envía datos a chrome.storage.session + INJECT_START
+- checkLicenseAccess(): bloquea/muestra contenido según licencia o trial
+- checkLicenseStatus(): muestra estado de licencia, oculta input si activa
+- activateLicense(): valida token y lo guarda en storage
+- loadMachineID(): obtiene y muestra el ID de máquina
+- copyMachineID(): copia ID al portapapeles
+
+3c. content.js (Content Script)
+───────────────────────────────
+- INJECTOR objeto con toda la lógica de inyección
+- init(): carga datos de storage o espera mensaje
+- start(): inicia según modo (semi/per_student/auto)
+- createPanel(): panel flotante oscuro con progreso
+- injectNextSemi(): while loop, 1 materia a la vez, espera click
+- injectPerStudent(): while loop, llena estudiante completo, espera click
+- injectAll(): llena todo de corrido
+- searchStudent(): llena código, click Buscar, espera carga
+- selectSubject(): soporta <select>, autocomplete, combobox (MUI)
+- fillGradeInputs(): llena cualitativo y cuantitativo
+- clickGuardar(): click en botón Guardar
+- confirmGuardar(): maneja modal "¿Estás seguro?" + "Sí, Guardar"
+- dismissSuccess(): maneja modal de éxito "OK"
+- waitForGradeSaved(): espera a que aparezca en el grid
+- waitForClick(): espera click del usuario (con ensurePanel)
+- ensurePanel(): recrea panel si se perdió (postbacks parciales)
+- showNextButton() / showAutoStatus(): controles del panel
+- simulateInput(): setter nativo + input/change events
+
+4. LICENCIAS (Sistema completo)
+────────────────────────────────
+- Secreto: Digitar2024!MachineLock (en background.js y generar-licencia.js)
+- Formato token: YYYY-MM-DD:<sha256hex>
+- Machine ID: SHA-256(chrome.runtime.id + machineUUID) → primeros 32 hex
+- Validación: hash = SHA-256(machineID + ":" + expiryStr + ":" + SECRET)
+- Prueba gratis: 50 estudiantes en total (chrome.storage.local)
+- Al activar: almacena licenseValid=true en chrome.storage.local
+- Al expirar: oculta input, muestra "Licencia vencida"
+- Distribución: usuario da su Machine ID → desarrollador genera token
+
+5. MODOS DE INYECCIÓN
+──────────────────────
+  Modo          | Comportamiento
+  Semi          | 1 materia → click Siguiente → 1 materia → ...
+  Por Estudiante| Todas las materias de 1 estudiante → click Siguiente est.
+  Automático    | Todo de corrido sin detenerse
+
+6. VELOCIDAD
+────────────
+  Rápido:  5s por registro
+  Normal: 10s por registro (default)
+  Lento:  15s por registro
+
+7. COMANDOS
+───────────
+  npm run build        - Webpack modo producción (minificado)
+  npm run build:dev    - Webpack modo desarrollo
+  npm run build:usb    - Build + ofuscación para USB
+  npm run obfuscate    - Solo ofuscar dist/ existente
+
+  node tools/generar-licencia.js <MACHINE_ID>        - Licencia 1 año
+  node tools/generar-licencia.js <MACHINE_ID> 6m     - Licencia 6 meses
+  node tools/generar-licencia.js <MACHINE_ID> 3m     - Licencia 3 meses
+  node tools/generar-licencia.js <MACHINE_ID> YYYY-MM-DD - Fecha exacta
+
+8. DISTRIBUCIÓN
+────────────────
+  1. npm run build:usb → se crea dist-usb/
+  2. Copiar dist-usb/ a una USB
+  3. En la PC destino: chrome://extensions → Modo desarrollador
+  4. "Cargar descomprimida" → seleccionar dist-usb/ de la USB
+  5. Sin licencia: prueba hasta 50 estudiantes gratis
+  6. Con licencia: ilimitado
+
+9. EXTENSIÓN vs SANDOX
+───────────────────────
+  - sandbox.html: http://localhost (o 127.0.0.1) para pruebas offline
+  - Probar: abrir sandbox.html en localhost, subir Excel, click "Confirmar"
+  - Se puede usar "Demo Auto" o "Demo Semi" desde el sandbox
+  - MINED real: serviciosenlinea.mined.gob.ni
+
+10. PENDIENTE (Opcional)
+─────────────────────────
+  - Limpiar debug logging excesivo (this.log() en content.js)
+
+11. GIT (Ramas)
+───────────────
+  - master: código base
+  - dev: desarrollo principal
+  - modalidad-mined: actual (con merge de dev para sistema de licencias)
+
+===============================================================================
