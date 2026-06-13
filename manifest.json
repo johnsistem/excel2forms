@@ -1,8 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "Asistente de Accesibilidad Visual",
+  "default_locale": "es",
+  "name": "__MSG_appName__",
   "version": "1.0.0",
-  "description": "Herramienta de accesibilidad para digitalizar documentos impresos.",
+  "description": "__MSG_appDesc__",
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
@@ -10,7 +11,7 @@
   },
   "action": {
     "default_popup": "src/popup.html",
-    "default_title": "Asistente de Accesibilidad"
+    "default_title": "Excel2Forms"
   },
   "background": {
     "service_worker": "src/background.js",

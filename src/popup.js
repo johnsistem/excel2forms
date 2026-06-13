@@ -1,11 +1,50 @@
 const XLSX = require('xlsx');
 
+// ───── i18n ─────
+let I18N = {};
+
+function t(key, ...args) {
+  let s = I18N[key] || key;
+  if (args.length) args.forEach((a, i) => { s = s.replace('{' + i + '}', a); });
+  return s;
+}
+
+async function loadTranslations(locale) {
+  try {
+    const resp = await fetch(chrome.runtime.getURL('_locales/' + locale + '/messages.json'));
+    const msgs = await resp.json();
+    const flat = {};
+    for (const [k, v] of Object.entries(msgs)) flat[k] = v.message;
+    I18N = flat;
+  } catch (e) {
+    I18N = {};
+  }
+}
+
+function applyTranslations(root) {
+  if (!root) root = document;
+  root.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    const val = t(key);
+    if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+      el.placeholder = val;
+    } else if (el.tagName === 'OPTION') {
+      el.textContent = val;
+    } else {
+      el.textContent = val;
+    }
+  });
+}
+
 if (!window.location.search.includes('mode=tab')) {
   chrome.tabs.create({ url: 'src/popup.html?mode=tab' });
   window.close();
 }
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
+  const stored = await new Promise(r => chrome.storage.local.get('locale', res => r(res.locale || 'es')));
+  await loadTranslations(stored);
+  applyTranslations();
   initTabs();
   checkLicenseAccess();
   document.getElementById('confirmBtn').addEventListener('click', confirmData);
@@ -16,6 +55,19 @@ document.addEventListener('DOMContentLoaded', function() {
   loadMachineID();
   checkLicenseStatus();
   initGenericTab();
+
+  // Language selector
+  const langSelect = document.getElementById('langSelect');
+  if (langSelect) {
+    const stored = await new Promise(r => chrome.storage.local.get('locale', res => r(res.locale || 'es')));
+    langSelect.value = stored;
+    langSelect.addEventListener('change', async function() {
+      await new Promise(r => chrome.storage.local.set({ locale: this.value }, r));
+      await loadTranslations(this.value);
+      applyTranslations();
+      checkLicenseStatus();
+    });
+  }
 });
 
 const STATE = { parsedData: null, detectedCols: [], rawRows: null, rawCols: null };
@@ -410,7 +462,7 @@ function copyMachineID() {
   navigator.clipboard.writeText(id).then(() => {
     const btn = document.getElementById('copyMachineIDBtn');
     const orig = btn.textContent;
-    btn.textContent = '✓ Copiado';
+    btn.textContent = t('copied');
     setTimeout(() => btn.textContent = orig, 2000);
   });
 }
@@ -419,14 +471,14 @@ function checkLicenseStatus() {
   chrome.runtime.sendMessage({ type: 'CHECK_LICENSE' }, res => {
     const section = document.getElementById('licenseActivationSection');
     if (res?.valid) {
-      const expiryText = res.expiry ? ' (vence ' + res.expiry + ')' : '';
-      setLicenseStatus('✓ Licencia activada' + expiryText, 'active');
+      const expiryText = res.expiry ? t('licenseExpiry', res.expiry) : '';
+      setLicenseStatus(t('licenseActive') + expiryText, 'active');
       if (section) section.classList.add('hidden');
     } else if (res?.expired) {
-      setLicenseStatus('✗ Licencia vencida — solicitá una renovación', 'inactive');
+      setLicenseStatus(t('licenseExpired'), 'inactive');
       if (section) section.classList.remove('hidden');
     } else {
-      setLicenseStatus('Inactiva — pegá tu licencia abajo', 'inactive');
+      setLicenseStatus(t('licenseInactive'), 'inactive');
       if (section) section.classList.remove('hidden');
     }
   });
@@ -434,20 +486,20 @@ function checkLicenseStatus() {
 
 function activateLicense() {
   const token = document.getElementById('licenseInput').value.trim();
-  if (!token) { setLicenseStatus('Ingresa el token de licencia', 'inactive'); return; }
-  setLicenseStatus('Validando...', 'info');
+  if (!token) { setLicenseStatus(t('licenseEnterToken'), 'inactive'); return; }
+  setLicenseStatus(t('licenseValidating'), 'info');
   chrome.runtime.sendMessage({ type: 'VALIDATE_LICENSE', payload: { token } }, res => {
     if (res?.valid) {
-      const expiryText = res.expiry ? ' (vence ' + res.expiry + ')' : '';
-      setLicenseStatus('✓ Licencia activada' + expiryText, 'active');
+      const expiryText = res.expiry ? t('licenseExpiry', res.expiry) : '';
+      setLicenseStatus(t('licenseActive') + expiryText, 'active');
       document.getElementById('licenseInput').value = '';
       const section = document.getElementById('licenseActivationSection');
       if (section) section.classList.add('hidden');
       checkLicenseAccess();
     } else if (res?.expired) {
-      setLicenseStatus('✗ Token vencido', 'inactive');
+      setLicenseStatus(t('licenseTokenExpired'), 'inactive');
     } else {
-      setLicenseStatus('✗ Token inválido', 'inactive');
+      setLicenseStatus(t('licenseTokenInvalid'), 'inactive');
     }
   });
 }
@@ -470,6 +522,7 @@ const GF = {
   excelData: null,
   excelCols: [],
   detectedFields: [],
+  detectedButtons: [],
   fileName: '',
 };
 
@@ -507,15 +560,15 @@ function initGenericTab() {
 
 async function processFileGeneric(file) {
   if (!/\.(xlsx|xls)$/i.test(file.name)) {
-    gfShowStatus('Formato no soportado. Usá Excel (.xlsx, .xls).', 'error');
+    gfShowStatus(t('genericFormatError'), 'error');
     return;
   }
   try {
-    gfShowStatus('Leyendo Excel...', 'info');
+    gfShowStatus(t('genericReading'), 'info');
     const buf = await readFileAsArrayBuffer(file);
     const result = parseExcelGeneric(new Uint8Array(buf));
     if (!result || !result.rows || result.rows.length === 0) {
-      gfShowStatus('No se encontraron datos en el archivo.', 'error');
+      gfShowStatus(t('genericNoData'), 'error');
       return;
     }
     GF.excelData = result.rows;
@@ -525,9 +578,9 @@ async function processFileGeneric(file) {
     document.getElementById('gfPreviewSection').classList.remove('hidden');
     // Re-render mapping if fields already detected
     if (GF.detectedFields.length > 0) renderMappingUI();
-    gfShowStatus(`${result.rows.length} registros cargados desde Excel.`, 'success');
+    gfShowStatus(t('recordsLoaded', result.rows.length), 'success');
   } catch(err) {
-    gfShowStatus(`Error: ${err?.message || err || 'desconocido'}`, 'error');
+    gfShowStatus(t('genericError', err?.message || err || t('unknown')), 'error');
   }
 }
 
@@ -562,21 +615,21 @@ function renderGenericPreview(rows, cols) {
 function detectFields() {
   const btn = document.getElementById('gfDetectBtn');
   btn.disabled = true;
-  btn.textContent = 'Detectando...';
+  btn.textContent = t('detecting');
   chrome.runtime.sendMessage({ type: 'DETECT_FIELDS' }, res => {
     btn.disabled = false;
     btn.textContent = '🔍 Detectar Campos en la Página';
-    if (res?.fields && res.fields.length > 0) {
+    if (res?.fields) {
       GF.detectedFields = res.fields;
+      GF.detectedButtons = res.buttons || [];
       renderDetectedFields(res.fields);
+      renderDetectedButtons(GF.detectedButtons);
       renderMappingUI();
-      gfShowStatus(`${res.fields.length} campos detectados en la página.`, 'success');
-    } else if (res?.fields && res.fields.length === 0) {
-      gfShowStatus('No se encontraron campos (input/select/textarea) en la página.', 'info');
+      gfShowStatus(t('fieldsDetected', res.fields.length, GF.detectedButtons.length), 'success');
     } else if (res?.error) {
       gfShowStatus(res.error, 'error');
     } else {
-      gfShowStatus('No se pudo detectar campos. ¿Estás en una página con formulario?', 'error');
+      gfShowStatus(t('genericNoFields'), 'error');
     }
   });
 }
@@ -591,6 +644,23 @@ function renderDetectedFields(fields) {
     list.appendChild(div);
   });
   document.getElementById('gfFieldsSection').classList.remove('hidden');
+}
+
+function renderDetectedButtons(buttons) {
+  const list = document.getElementById('gfButtonsList');
+  if (!list) return;
+  list.innerHTML = '';
+  buttons.forEach(b => {
+    const div = document.createElement('div');
+    div.style.cssText = 'display:flex;align-items:center;gap:6px;padding:4px 6px;margin-bottom:3px;background:#1f2937;border-radius:4px;font-size:11px';
+    div.innerHTML = `<code style="color:#34d399;font-size:11px">${b.selector}</code> <span style="color:#d1d5db;flex:1">${escHtml(b.label)}</span>`;
+    div.onclick = () => {
+      document.getElementById('gfSubmitSelector').value = b.selector;
+      gfShowStatus(t('genericButtonSelected', b.label), 'info');
+    };
+    list.appendChild(div);
+  });
+  document.getElementById('gfButtonsSection').classList.toggle('hidden', buttons.length === 0);
 }
 
 function renderMappingUI() {
@@ -646,23 +716,27 @@ function saveGenericConfig() {
   if (!name) return;
   const mapping = buildMapping();
   if (mapping.length === 0) {
-    gfShowStatus('No hay campos mapeados. Seleccioná al menos un campo.', 'error');
+    gfShowStatus(t('genericNoMapping'), 'error');
     return;
   }
   const mode = document.getElementById('gfModeSelect').value;
   const delay = parseInt(document.getElementById('gfSpeedRange').value, 10);
+  const submitSelector = document.getElementById('gfSubmitSelector').value.trim() || '';
+  const showSummary = document.getElementById('gfShowSummary').checked;
   const config = {
     id: Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
     name,
     fields: mapping,
     mode,
     delay,
+    submitSelector,
+    showSummary,
   };
   chrome.storage.local.get('genericConfigs', result => {
     const configs = result.genericConfigs || [];
     configs.push(config);
     chrome.storage.local.set({ genericConfigs: configs }, () => {
-      gfShowStatus(`Configuración "${name}" guardada localmente.`, 'success');
+      gfShowStatus(t('genericConfigSaved', name), 'success');
     });
   });
 }
@@ -700,7 +774,9 @@ function applyGenericConfig(cfg) {
   });
   document.getElementById('gfModeSelect').value = cfg.mode || 'auto';
   document.getElementById('gfSpeedRange').value = cfg.delay || 500;
-  gfShowStatus(`Config "${cfg.name}" cargada. Revisá el mapeo antes de ejecutar.`, 'success');
+  document.getElementById('gfSubmitSelector').value = cfg.submitSelector || '';
+  document.getElementById('gfShowSummary').checked = cfg.showSummary !== false;
+  gfShowStatus(t('genericConfigLoaded', cfg.name), 'success');
 }
 
 function deleteGenericConfig(idx) {
@@ -709,34 +785,36 @@ function deleteGenericConfig(idx) {
     configs.splice(idx, 1);
     chrome.storage.local.set({ genericConfigs: configs }, () => {
       loadGenericConfigs();
-      gfShowStatus('Configuración eliminada.', 'info');
+      gfShowStatus(t('genericConfigDeleted'), 'info');
     });
   });
 }
 
 function executeGenericFill() {
   if (!GF.excelData || GF.excelData.length === 0) {
-    gfShowStatus('No hay datos de Excel. Cargá un archivo primero.', 'error');
+    gfShowStatus(t('noExcelData'), 'error');
     return;
   }
   const mapping = buildMapping();
   if (mapping.length === 0) {
-    gfShowStatus('No hay campos mapeados. Seleccioná al menos una columna → campo.', 'error');
+    gfShowStatus(t('noMappingAssigned'), 'error');
     return;
   }
   const mode = document.getElementById('gfModeSelect').value;
   const delay = parseInt(document.getElementById('gfSpeedRange').value, 10);
-  gfShowStatus(`Ejecutando ${GF.excelData.length} registros...`, 'info');
+  const submitSelector = document.getElementById('gfSubmitSelector').value.trim() || '';
+  const showSummary = document.getElementById('gfShowSummary').checked;
+  gfShowStatus(t('executingRecords', GF.excelData.length), 'info');
   chrome.runtime.sendMessage({
     type: 'GENERIC_FILL_START',
-    payload: { rows: GF.excelData, fields: mapping, config: { mode, delay } }
+    payload: { rows: GF.excelData, fields: mapping, config: { mode, delay, submitSelector, showSummary } }
   }, res => {
-    if (res?.ok) gfShowStatus(`Inyectando ${GF.excelData.length} registros...`, 'success');
+    if (res?.ok) gfShowStatus(t('genericInjecting', GF.excelData.length), 'success');
     else if (res?.error) gfShowStatus(res.error, 'error');
   });
 }
 
 function stopGenericFill() {
   chrome.runtime.sendMessage({ type: 'GENERIC_FILL_STOP' });
-  gfShowStatus('Llenado detenido.', 'info');
+  gfShowStatus(t('genericStopped'), 'info');
 }

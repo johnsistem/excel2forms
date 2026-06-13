@@ -2,21 +2,20 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Digitar Asistente</title>
+  <title>Excel2Forms</title>
   <link rel="stylesheet" href="popup.css">
 </head>
 <body style="background:#111827;">
   <div class="container">
     <header>
-      <h1>Digitar Asistente</h1>
+      <h1 style="display:flex;align-items:center;gap:16px;font-size:26px;font-weight:600"><img src="../icons/icon128.png" alt="" style="width:64px;height:64px;border-radius:14px"> Excel2Forms</h1>
       <nav class="tabs">
-        <button class="tab active" data-tab="scanner">Cargar Acta</button>
-        <button class="tab" data-tab="generic">Formulario Genérico</button>
-        <button class="tab" data-tab="settings">Configuración</button>
+        <button class="tab active" data-tab="generic" data-i18n="tabGeneric">Formulario Genérico</button>
+        <button class="tab" data-tab="settings" data-i18n="tabSettings">Configuración</button>
       </nav>
     </header>
 
-    <section id="tab-scanner" class="tab-content active">
+    <section id="tab-scanner" class="tab-content">
       <div id="licenseBlock" class="license-block">
         <div class="license-block-icon">🔒</div>
         <p class="license-block-title">Licencia no activada</p>
@@ -34,7 +33,7 @@
         </div>
 
         <div id="previewSection" class="hidden">
-          <h3>Vista Previa</h3>
+        <h3 data-i18n="preview">Vista Previa</h3>
 
           <div id="mappingSection" class="mapping-section hidden">
             <h4>Mapeo de Columnas</h4>
@@ -67,13 +66,39 @@
       </div>
     </section>
 
-    <section id="tab-generic" class="tab-content hidden">
+    <section id="tab-generic" class="tab-content active">
       <div id="gfStatusMessage" class="status hidden"></div>
+
+      <details style="margin-bottom:12px;background:#0c1929;border:1px solid #1e3a5f;border-radius:6px;padding:8px;font-size:11px;color:#d1d5db">
+        <summary data-i18n="excelFormat" style="cursor:pointer;font-weight:600;color:#60a5fa">📋 Formato del Excel</summary>
+        <p style="margin-top:8px;margin-bottom:4px"><strong data-i18n="excelFormatDesc">Plano (una fila = un registro):</strong></p>
+        <table style="width:100%;border-collapse:collapse;font-size:10px;margin-bottom:8px">
+          <thead>
+            <tr>
+              <th style="border:1px solid #374151;padding:4px;text-align:left;background:#1f2937">NOMBRE</th>
+              <th style="border:1px solid #374151;padding:4px;text-align:left;background:#1f2937">CEDULA</th>
+              <th style="border:1px solid #374151;padding:4px;text-align:left;background:#1f2937">CORREO</th>
+              <th style="border:1px solid #374151;padding:4px;text-align:left;background:#1f2937">TELÉFONO</th>
+              <th style="border:1px solid #374151;padding:4px;text-align:left;background:#1f2937">CARGO</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="border:1px solid #374151;padding:4px">Juan Pérez</td>
+              <td style="border:1px solid #374151;padding:4px">1-2345-6789</td>
+              <td style="border:1px solid #374151;padding:4px">juan@email.com</td>
+              <td style="border:1px solid #374151;padding:4px">505 8888-888</td>
+              <td style="border:1px solid #374151;padding:4px">Gerente</td>
+            </tr>
+          </tbody>
+        </table>
+        <p style="color:#9ca3af" data-i18n="excelFormatHelp">La primera fila debe tener los nombres de columna. Cada columna se asigna a un campo del formulario.</p>
+      </details>
 
       <div class="upload-zone" id="gfUploadZone">
         <div class="upload-icon">+</div>
-        <p class="upload-text">Arrastra un archivo Excel aquí o haz clic para seleccionar</p>
-        <p class="upload-hint">Formatos: Excel (.xlsx, .xls)</p>
+        <p class="upload-text" data-i18n="uploadExcel">Arrastra un archivo Excel aquí o haz clic para seleccionar</p>
+        <p class="upload-hint" data-i18n="uploadExcelHint">Formatos: Excel (.xlsx, .xls)</p>
         <input type="file" id="gfFileInput" accept=".xlsx,.xls" hidden>
       </div>
 
@@ -92,83 +117,105 @@
         </div>
       </div>
 
-      <button id="gfDetectBtn" class="btn primary" style="margin-top:12px;width:100%">🔍 Detectar Campos en la Página</button>
+      <button id="gfDetectBtn" class="btn primary" style="margin-top:12px;width:100%" data-i18n="detectFields">🔍 Detectar Campos</button>
 
       <div id="gfFieldsSection" class="hidden" style="margin-top:12px;padding:10px;background:#0c1929;border:1px solid #1e3a5f;border-radius:6px">
-        <h4 style="font-size:13px;margin-bottom:4px;color:#60a5fa">Campos Detectados</h4>
-        <p style="font-size:11px;color:#9ca3af;margin-bottom:8px">Campos encontrados en la página actual.</p>
+        <h4 data-i18n="fieldsTitle" style="font-size:13px;margin-bottom:4px;color:#60a5fa">Campos del Formulario</h4>
+        <p data-i18n="fieldsDesc" style="font-size:11px;color:#9ca3af;margin-bottom:8px">Campos encontrados en la página actual.</p>
         <div id="gfFieldsList" style="font-size:12px"></div>
       </div>
 
+      <div id="gfButtonsSection" class="hidden" style="margin-top:8px;padding:10px;background:#0c1929;border:1px solid #065f46;border-radius:6px">
+        <h4 data-i18n="buttonsTitle" style="font-size:13px;margin-bottom:4px;color:#34d399">Botón para Guardar</h4>
+        <p data-i18n="buttonsDesc" style="font-size:11px;color:#9ca3af;margin-bottom:8px">Elegí cuál botón se va a presionar después de llenar los datos.</p>
+        <div id="gfButtonsList" style="font-size:12px"></div>
+      </div>
+
       <div id="gfMappingSection" class="hidden" style="margin-top:12px;padding:10px;background:#0c1929;border:1px solid #1e3a5f;border-radius:6px">
-        <h4 style="font-size:13px;margin-bottom:4px;color:#60a5fa">Mapeo: Columna Excel → Campo en Página</h4>
-        <p style="font-size:11px;color:#9ca3af;margin-bottom:8px">Seleccioná a qué campo de la página corresponde cada columna del Excel.</p>
+        <h4 data-i18n="mappingTitle" style="font-size:13px;margin-bottom:4px;color:#60a5fa">Asignar Columnas</h4>
+        <p data-i18n="mappingDesc" style="font-size:11px;color:#9ca3af;margin-bottom:8px">Seleccioná qué campo del formulario corresponde a cada columna del Excel.</p>
         <div id="gfMappingContainer" style="font-size:12px"></div>
       </div>
 
       <div style="display:flex;gap:8px;margin-top:12px">
-        <button id="gfSaveConfigBtn" class="btn secondary" style="flex:1;font-size:11px">💾 Guardar Config</button>
-        <button id="gfLoadConfigBtn" class="btn secondary" style="flex:1;font-size:11px">📂 Cargar Config</button>
+        <button id="gfSaveConfigBtn" class="btn secondary" style="flex:1;font-size:11px" data-i18n="saveConfig">Guardar Config</button>
+        <button id="gfLoadConfigBtn" class="btn secondary" style="flex:1;font-size:11px" data-i18n="loadConfig">Cargar Config</button>
       </div>
 
       <div id="gfConfigSection" class="hidden" style="margin-top:8px;padding:8px;background:#0c1929;border:1px solid #1e3a5f;border-radius:6px">
-        <h4 style="font-size:13px;margin-bottom:4px;color:#60a5fa">Configuraciones Guardadas</h4>
+        <h4 data-i18n="configsSaved" style="font-size:13px;margin-bottom:4px;color:#60a5fa">Configuraciones Guardadas</h4>
         <div id="gfConfigList" style="font-size:12px"></div>
       </div>
 
       <div class="settings-group" style="margin-top:12px">
-        <label for="gfModeSelect">Modo de avance</label>
+        <label for="gfModeSelect" data-i18n="modeLabel">Avance</label>
         <select id="gfModeSelect">
-          <option value="auto" selected>Automático (sin pausa)</option>
-          <option value="manual">Manual (fila por fila)</option>
+          <option value="auto" selected data-i18n="modeAuto">Automático</option>
+          <option value="manual" data-i18n="modeManual">Manual (fila por fila)</option>
         </select>
       </div>
       <div class="settings-group">
-        <label for="gfSpeedRange">Delay entre campos</label>
+        <label for="gfSpeedRange" data-i18n="speedLabel">Velocidad</label>
         <select id="gfSpeedRange">
-          <option value="200">Rápido (0.2s)</option>
-          <option value="500" selected>Normal (0.5s)</option>
-          <option value="1000">Lento (1s)</option>
+          <option value="200" data-i18n="speedFast">Rápida</option>
+          <option value="500" selected data-i18n="speedNormal">Normal</option>
+          <option value="1000" data-i18n="speedSlow">Lenta</option>
         </select>
+      </div>
+      <div class="settings-group" style="flex-direction:row;align-items:center;gap:8px">
+        <input type="checkbox" id="gfShowSummary" checked style="accent-color:#f59e0b;width:16px;height:16px">
+        <label for="gfShowSummary" style="font-size:11px;margin:0" data-i18n="showSummary">Mostrar resumen al final</label>
+      </div>
+      <div class="settings-group">
+        <label for="gfSubmitSelector" data-i18n="submitLabel">Botón Guardar <span style="color:#f59e0b;font-size:10px">(necesario para guardar)</span></label>
+        <input type="text" id="gfSubmitSelector" placeholder="#btnGuardarGeneric" style="width:100%;padding:6px 8px;border:1px solid #4b5563;border-radius:4px;font-size:11px;background:#111827;color:#e5e7eb">
+        <p data-i18n="submitHelp" style="font-size:10px;color:#6b7280;margin-top:2px">Detectá campos y hacé clic en un botón de la lista para llenar esto automáticamente.</p>
       </div>
 
       <div style="display:flex;gap:8px;margin-top:12px">
-        <button id="gfExecuteBtn" class="btn primary" style="flex:1">▶ Ejecutar</button>
-        <button id="gfStopBtn" class="btn secondary" style="flex:1">⏹ Detener</button>
+        <button id="gfExecuteBtn" class="btn primary" style="flex:1" data-i18n="execute">▶ Ejecutar</button>
+        <button id="gfStopBtn" class="btn secondary" style="flex:1" data-i18n="stop">⏹ Detener</button>
       </div>
     </section>
 
     <section id="tab-settings" class="tab-content hidden">
       <div class="settings-group">
-        <label for="modeSelect">Modo de llenado</label>
+        <label for="modeSelect" data-i18n="minedMode">Modo de llenado</label>
         <select id="modeSelect">
-          <option value="semi">Semi-automático (materia por materia)</option>
-          <option value="per_student" selected>Por Estudiante (llena todo un estudiante y se detiene)</option>
-          <option value="auto">Automático (todo de una)</option>
+          <option value="semi" data-i18n="minedModeSemi">Semi-automático (materia por materia)</option>
+          <option value="per_student" selected data-i18n="minedModeStudent">Por Estudiante (llena todo y se detiene)</option>
+          <option value="auto" data-i18n="minedModeAuto">Automático (todo de una)</option>
         </select>
       </div>
       <div class="settings-group">
-        <label for="speedRange">Velocidad de llenado</label>
+        <label for="speedRange" data-i18n="minedSpeed">Velocidad de llenado</label>
         <select id="speedRange">
-          <option value="5" selected>Rápido (5s por registro)</option>
-          <option value="10">Normal (10s por registro)</option>
-          <option value="15">Lento (15s por registro)</option>
+          <option value="5" selected data-i18n="minedSpeedFast">Rápido (5s por registro)</option>
+          <option value="10" data-i18n="minedSpeedNormal">Normal (10s por registro)</option>
+          <option value="15" data-i18n="minedSpeedSlow">Lento (15s por registro)</option>
         </select>
       </div>
       <div class="settings-group">
-        <label>ID de Máquina</label>
+        <label data-i18n="language">Idioma</label>
+        <select id="langSelect">
+          <option value="es" data-i18n="langEs">Español</option>
+          <option value="en" data-i18n="langEn">Inglés</option>
+        </select>
+      </div>
+      <div class="settings-group">
+        <label data-i18n="machineID">ID de Máquina</label>
         <div class="machine-id-box" id="machineIDDisplay">Cargando...</div>
-        <button id="copyMachineIDBtn" class="btn secondary" style="font-size:11px;padding:3px 8px">Copiar ID</button>
-        <p class="hint">Este ID identifica tu PC. Enviámelo para generar tu licencia.</p>
+        <button id="copyMachineIDBtn" class="btn secondary" style="font-size:11px;padding:3px 8px" data-i18n="copyID">Copiar ID</button>
+        <p class="hint" data-i18n="machineIDDesc">Este ID identifica tu PC. Enviámelo para generar tu licencia.</p>
       </div>
       <div class="settings-group" id="licenseActivationSection">
-        <label for="licenseInput">Clave de Licencia</label>
-        <input type="text" id="licenseInput" placeholder="Pegá la licencia aquí">
-        <button id="activateBtn" class="btn secondary">Activar</button>
+        <label for="licenseInput" data-i18n="licenseKey">Clave de Licencia</label>
+        <input type="text" id="licenseInput" data-i18n="licensePlaceholder" placeholder="Pegá la licencia aquí">
+        <button id="activateBtn" class="btn secondary" data-i18n="activate">Activar</button>
         <p id="licenseStatus" class="license-status"></p>
       </div>
       <div class="settings-group">
-        <p class="version">Versión 1.0.0</p>
+        <p class="version" data-i18n="version">Versión 1.0.0</p>
       </div>
     </section>
   </div>

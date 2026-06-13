@@ -519,6 +519,7 @@ const GENERIC_INJECTOR = {
   running: false,
   panel: null,
   resolveNext: null,
+  savedRows: [],
 
   async start(taskData) {
     if (this.running) return;
@@ -529,6 +530,7 @@ const GENERIC_INJECTOR = {
     }
     this.running = true;
     this.index = 0;
+    this.savedRows = [];
     this.createPanel();
     try {
       while (this.running && this.index < this.task.rows.length) {
@@ -549,6 +551,26 @@ const GENERIC_INJECTOR = {
           this.log(`${field.excelColumn} → ${field.selector}: "${String(value).slice(0, 30)}"`);
           if (this.task.config?.delay) await this.sleep(this.task.config.delay);
         }
+        if (this.running && this.task.config?.submitSelector) {
+          this.log(`Ejecutando submit: ${this.task.config.submitSelector}`);
+          this.savedRows.push({ row, index: this.index + 1 });
+          // Inject script to click button (page world)
+          const s = document.createElement('script');
+          s.textContent = `(function(){var b=document.querySelector('${this.task.config.submitSelector}');if(b){b.disabled=false;b.click();}})();`;
+          document.body.appendChild(s); s.remove();
+          // Direct DOM append to sandbox grid
+          const gfTbody = document.querySelector('#gfGridBody');
+          if (gfTbody) {
+            const tr = document.createElement('tr');
+            const vals = this.task.fields.map(f => row[f.excelColumn] || '');
+            tr.innerHTML = `<td style="padding:6px 8px;border-bottom:1px solid #e0e0e0">${this.index+1}</td>` +
+              vals.map(v => `<td style="padding:6px 8px;border-bottom:1px solid #e0e0e0">${String(v).slice(0,25)}</td>`).join('');
+            gfTbody.appendChild(tr);
+            const emptyMsg = document.querySelector('#gfEmptyGridMsg');
+            if (emptyMsg) emptyMsg.style.display = 'none';
+          }
+          await this.sleep(600);
+        }
         this.index++;
         if (this.index < this.task.rows.length && this.running) {
           if (this.task.config?.mode === 'manual') {
@@ -567,6 +589,7 @@ const GENERIC_INJECTOR = {
       this.updatePanel('Completado ✓', 100);
       this.showAutoStatus(false);
       this.notify('Llenado genérico completado.');
+      if (this.savedRows.length > 0 && this.task.config?.showSummary !== false) this.showSummaryModal();
     }
     this.running = false;
   },
@@ -594,7 +617,16 @@ const GENERIC_INJECTOR = {
         type: el.type || '',
       });
     });
-    return fields;
+    const buttons = [];
+    document.querySelectorAll('button, input[type="submit"], input[type="button"]').forEach(el => {
+      if (el.offsetParent === null) return;
+      const text = el.textContent?.trim() || el.value?.trim() || '';
+      if (!text) return;
+      const selector = el.id ? `#${el.id}` : '';
+      if (!selector) return;
+      buttons.push({ label: text, selector });
+    });
+    return { fields, buttons };
   },
 
   fillField(el, value) {
@@ -692,6 +724,35 @@ const GENERIC_INJECTOR = {
     if (fill) fill.style.width = pct + '%';
   },
 
+  showSummaryModal() {
+    const modal = document.createElement('div');
+    modal.id = '__digitar_summary_modal';
+    Object.assign(modal.style, {
+      position: 'fixed', inset: '0', zIndex: '999999', background: 'rgba(0,0,0,.7)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+    });
+    const cols = this.task.fields.map(f => f.excelColumn);
+    const rows = this.savedRows;
+    modal.innerHTML = `
+      <div style="background:#1e293b;border-radius:8px;padding:16px;max-width:90vw;max-height:80vh;overflow:auto;color:#e2e8f0;font:13px sans-serif;box-shadow:0 8px 32px rgba(0,0,0,.5)">
+        <h3 style="margin:0 0 8px;font-size:15px;color:#f59e0b">✓ Llenado completado — ${rows.length} registros</h3>
+        <table style="width:100%;border-collapse:collapse;font-size:11px">
+          <thead>
+            <tr>${['#', ...cols].map(c => `<th style="padding:5px 8px;text-align:left;border-bottom:2px solid #f59e0b;background:#334155;color:#f59e0b;white-space:nowrap">${c}</th>`).join('')}</tr>
+          </thead>
+          <tbody>
+            ${rows.map(r => `<tr>${['', ...cols].map((c, i) => `<td style="padding:4px 8px;border-bottom:1px solid #334155;white-space:nowrap">${i === 0 ? r.index : String(r.row[c] || '').slice(0, 30)}</td>`).join('')}</tr>`).join('')}
+          </tbody>
+        </table>
+        <div style="text-align:center;margin-top:12px">
+          <button id="__digitar_close_summary" style="background:#f59e0b;color:#000;border:none;border-radius:4px;padding:8px 24px;cursor:pointer;font-weight:600;font-size:13px">Cerrar</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+    document.getElementById('__digitar_close_summary').onclick = () => modal.remove();
+    modal.onclick = e => { if (e.target === modal) modal.remove(); };
+  },
+
   ensurePanel() {
     if (!document.getElementById('__digitar_generic_panel')) {
       this.panel = null;
@@ -725,25 +786,11 @@ const GENERIC_INJECTOR = {
   sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 };
 
-// Badge visible para confirmar que el content script se inyectó
-if (!document.getElementById('__digitar_badge')) {
-  (function showInjectBadge() {
-    const badge = document.createElement('div');
-    badge.id = '__digitar_badge';
-    badge.textContent = 'Digitar CS: ✓';
-    Object.assign(badge.style, {
-      position: 'fixed', top: '8px', right: '8px', zIndex: '999999',
-      background: '#22c55e', color: '#fff', padding: '3px 8px',
-      borderRadius: '4px', font: '11px sans-serif',
-      boxShadow: '0 2px 6px rgba(0,0,0,.2)',
-      opacity: '.9', cursor: 'pointer',
-    });
-    badge.onclick = () => badge.remove();
-    document.body.appendChild(badge);
-    document.dispatchEvent(new CustomEvent('__digitar_log', { detail: '✅ Badge verde visible — content script inyectado' }));
-    setTimeout(() => { badge.style.opacity = '.4'; }, 5000);
-  })();
-}
+// 🔒 GUARD: solo registrar listeners una vez (evita duplicados cuando content.js se inyecta múltiples veces)
+if (!document.querySelector('meta[name="__digitar_cs_reg"]')) {
+  const m = document.createElement('meta');
+  m.name = '__digitar_cs_reg';
+  document.head.appendChild(m);
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   switch (message.type) {
@@ -756,9 +803,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       }
       sendResponse({ ok: true });
       return true;
-    case 'DETECT_FIELDS':
-      sendResponse({ fields: GENERIC_INJECTOR.scanFields() });
+    case 'DETECT_FIELDS': {
+      const detected = GENERIC_INJECTOR.scanFields();
+      sendResponse({ fields: detected.fields, buttons: detected.buttons });
       return true;
+    }
     case 'GENERIC_FILL_START':
       GENERIC_INJECTOR.start(message.payload);
       sendResponse({ ok: true });
@@ -770,18 +819,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 });
 
-// Escuchar eventos del sandbox (demo buttons) para inyectar via content script
-document.addEventListener('__digitar_inject_demo', function(e) {
-  const payload = e.detail;
-  if (!payload || !payload.data || !payload.data.length) return;
-  INJECTOR.task = {
-    data: payload.data,
-    config: { mode: payload.mode || 'auto', speed: payload.speed || 3 },
-    index: 0
-  };
-  INJECTOR.index = 0;
-  INJECTOR.subjectIndex = 0;
-  INJECTOR.systemSubjects = [];
-  INJECTOR.notify('🎬 Demo data recibida: ' + payload.data.length + ' estudiantes, modo=' + (payload.mode || 'auto'));
-  INJECTOR.start();
-});
+  // Escuchar eventos del sandbox (demo buttons) para inyectar via content script
+  document.addEventListener('__digitar_inject_demo', function(e) {
+    const payload = e.detail;
+    if (!payload || !payload.data || !payload.data.length) return;
+    INJECTOR.task = {
+      data: payload.data,
+      config: { mode: payload.mode || 'auto', speed: payload.speed || 3 },
+      index: 0
+    };
+    INJECTOR.index = 0;
+    INJECTOR.subjectIndex = 0;
+    INJECTOR.systemSubjects = [];
+    INJECTOR.notify('🎬 Demo data recibida: ' + payload.data.length + ' estudiantes, modo=' + (payload.mode || 'auto'));
+    INJECTOR.start();
+  });
+}

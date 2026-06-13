@@ -47,7 +47,7 @@ async function validateLicense(token) {
 
 async function findCurrentTab() {
   const tabs = await chrome.tabs.query({});
-  const normal = tabs.filter(t => t.status === 'complete' && t.url && !t.url.startsWith('chrome-') && !t.url.startsWith('about:'));
+  const normal = tabs.filter(t => t.status === 'complete' && t.url && !t.url.startsWith('chrome') && !t.url.startsWith('about:') && !t.url.startsWith('edge:'));
   return normal.find(t => t.active && t.highlighted) || normal[0] || null;
 }
 
@@ -111,7 +111,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       (async () => {
         const tab = await findCurrentTab();
         if (!tab) {
-          sendResponse({ error: 'No se encontró una pestaña activa.' });
+          sendResponse({ error: 'No se encontró una pestaña activa. Abrí el formulario en una pestaña normal y volvé al popup.' });
           return;
         }
         try {
@@ -121,9 +121,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           });
           await new Promise(r => setTimeout(r, 400));
           const result = await chrome.tabs.sendMessage(tab.id, { type: 'DETECT_FIELDS' });
-          sendResponse({ fields: result.fields });
+          sendResponse({ fields: result.fields, buttons: result.buttons });
         } catch (e) {
-          sendResponse({ error: 'Error: ' + (e.message || e) + ' | URL: ' + (tab.url || '?') });
+          sendResponse({ error: 'Error al detectar campos en ' + (tab.url || '?') + '. Asegurate de estar en la página con el formulario.' });
         }
       })();
       return true;
@@ -132,7 +132,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       (async () => {
         const tab = await findCurrentTab();
         if (!tab) {
-          sendResponse({ error: 'No se encontró una pestaña activa.' });
+          sendResponse({ error: 'No se encontró una pestaña activa. Abrí el formulario en una pestaña normal.' });
           return;
         }
         try {
@@ -147,7 +147,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           });
           sendResponse({ ok: true });
         } catch (e) {
-          sendResponse({ error: 'Error: ' + (e.message || e) });
+          sendResponse({ error: 'Error al ejecutar en ' + (tab.url || '?') + '. Asegurate de estar en la página con el formulario.' });
         }
       })();
       return true;

@@ -22,8 +22,6 @@ Demostrar que el motor de automatización existente puede reutilizarse para llen
 
 NO CONSTRUIR NADA DE ESO.
 
-SOLO QUIERO VALIDAR UNA IDEA.
-
 ## Hipótesis
 
 Actualmente la extensión funciona para MINED porque conoce los selectores y el flujo.
@@ -49,7 +47,12 @@ Reutilizar el sistema actual de carga de Excel. No reescribirlo.
 Permitir asociar: Columna Excel → Campo detectado.
 Ejemplo: NOMBRE → #nombre, CEDULA → #cedula, SALARIO → #salario
 
-### 5. Guardar configuración
+### 5. Botón Guardar
+
+Permitir especificar un selector CSS opcional para el botón que guarda/envía el formulario.
+Al final de cada fila, después de llenar todos los campos, el motor hará click en ese botón.
+
+### 6. Guardar configuración
 
 Guardar el mapeo en JSON localmente. Ejemplo:
 
@@ -59,39 +62,37 @@ Guardar el mapeo en JSON localmente. Ejemplo:
   "fields": [
     { "excelColumn": "NOMBRE", "selector": "#nombre" },
     { "excelColumn": "CEDULA", "selector": "#cedula" }
-  ]
+  ],
+  "submitSelector": "#btnGuardarGeneric"
 }
 ```
 
 No almacenar en servidor. Guardar localmente.
 
-### 6. Ejecución
+### 7. Ejecución
 
 Agregar botón "Ejecutar". El motor debe:
 - Leer cada fila del Excel
 - Buscar los selectores configurados
 - Llenar los campos
 - Disparar eventos input/change
+- Si hay `submitSelector`, hacer click en ese botón + esperar 500ms
 - Avanzar fila por fila
 
-NO HACER CLICK EN BOTONES TODAVÍA.
-NO HACER FLUJOS COMPLEJOS.
-PRIMERA META: Llenar formularios simples.
+### 8. Reutilizar código existente
 
-### 7. Reutilizar código existente
+Reutilizar al máximo: parseExcel(), readFileAsArrayBuffer(), createPanel(), simulateInput(), sistema de progreso, almacenamiento local.
 
-Reutilizar al máximo: parseExcel(), renderPreview(), createPanel(), simulateInput(), sistema de progreso, almacenamiento local.
+### 9. Prueba
 
-### 8. Prueba
-
-Crear un formulario de prueba dentro del sandbox: Nombre, Cédula, Correo, Teléfono, Cargo.
-Subir Excel. Mapear columnas. Ejecutar.
-Si el formulario se llena correctamente sin escribir lógica específica, la hipótesis queda validada.
+Crear un formulario de prueba dentro del sandbox: Nombre, Cédula, Correo, Teléfono, Cargo + botón Guardar.
+Subir Excel. Mapear columnas. Especificar selector del botón. Ejecutar.
+Si el formulario se llena y el botón se clickea correctamente sin escribir lógica específica, la hipótesis queda validada.
 
 ## Objetivo final
 
 Responder esta pregunta:
-¿El motor actual puede convertirse en una herramienta genérica para automatizar captura de datos en formularios web?
+¿El motor actual puede convertirse en una herramienta genérica para automatizar captura de datos en formularios web, incluyendo el guardado?
 
 NO BUSCO ESCALABILIDAD.
 NO BUSCO PRODUCTO FINAL.

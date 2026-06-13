@@ -12,11 +12,11 @@ Sin tocar nada de MINED. Todo el código nuevo convive en paralelo.
 
 | Archivo | Cambio |
 |---|---|
-| `popup.html` | Nueva 3ª pestaña "Formulario Genérico" con su contenido |
-| `src/popup.js` | Nuevo estado, UI de detección, mapeo, persistencia y ejecución genérica |
-| `src/content.js` | Nuevo `GENERIC_INJECTOR` — detección de campos + llenado genérico |
+| `popup.html` | Nueva 3ª pestaña "Formulario Genérico" con su contenido + campo selector botón |
+| `src/popup.js` | Nuevo estado, UI de detección, mapeo, persistencia y ejecución genérica + submitSelector |
+| `src/content.js` | Nuevo `GENERIC_INJECTOR` — detección de campos + llenado genérico + click a botón |
 | `src/background.js` | Nuevos tipos de mensaje (`DETECT_FIELDS`, `GENERIC_FILL_START`, `GENERIC_FILL_STOP`) |
-| `sandbox.html` | Nuevo formulario de prueba simple (Nombre, Cédula, Correo, Teléfono, Cargo) |
+| `sandbox.html` | Nuevo formulario de prueba simple (Nombre, Cédula, Correo, Teléfono, Cargo) + botón Guardar |
 | `docs/generic-forms-spec.md` | Especificación de referencia |
 | `docs/plan-generic-forms.md` | Este plan |
 
@@ -41,7 +41,9 @@ Sin cambios en: `parseExcel()`, `renderPreview()`, `simulateInput()`, ni ningún
    │                                  │                           │     por cada field mapping:
    │                                  │                           │       querySelector()
    │                                  │                           │       fillField()
-   │                                  │                           │     sleep() / waitForClick()
+   │                                  │                           │       sleep(delay)
+   │                                  │                           │     click(submitSelector) ← NUEVO
+   │                                  │                           │     sleep(500)
    │                                  │←─── GENERIC_PROGRESS ────┤
 ```
 
@@ -55,10 +57,22 @@ Tab 2: "Configuración"   (MINED, existente)
 Tab 3: "Formulario Genérico"  ← NUEVA
 ```
 
+Dentro de la pestaña genérica:
+- Upload zone para Excel
+- Vista previa
+- Botón "Detectar Campos"
+- Lista de campos detectados
+- Mapeo: Columna Excel → Campo en página
+- Selector del botón Guardar (input text opcional)
+- Guardar/Cargar configuración
+- Modo de avance (auto/manual)
+- Delay entre campos
+- Ejecutar / Detener
+
 ### 2. Detección de campos (content.js — GENERIC_INJECTOR.scanFields())
 
 - Escanea: `input`, `select`, `textarea`
-- Filtra: hidden, submit, button, file, image, reset
+- Filtra: hidden, submit, button, file, image, reset, checkbox, radio
 - Para cada elemento: label (de label asociado, aria-label, placeholder, name, id)
 - Construye selector CSS: `#id` o `tag[name="name"]`
 - Retorna: `[{label, id, name, selector, tag, type}]`
@@ -76,7 +90,16 @@ Tab 3: "Formulario Genérico"  ← NUEVA
 - Opciones = campos detectados
 - Valor guardado = selector CSS del campo
 
-### 5. Persistencia (popup.js + chrome.storage.local)
+### 5. Botón Guardar
+
+- Input de texto para selector CSS del botón
+- Se guarda en la configuración como `submitSelector`
+- Durante ejecución, después de llenar todos los campos de una fila:
+  - Si `submitSelector` está definido → `document.querySelector(submitSelector).click()`
+  - Espera 500ms
+  - Avanza a la siguiente fila
+
+### 6. Persistencia (popup.js + chrome.storage.local)
 
 ```json
 {
@@ -89,6 +112,7 @@ Tab 3: "Formulario Genérico"  ← NUEVA
         { "excelColumn": "NOMBRE", "selector": "#nombre" },
         { "excelColumn": "CEDULA", "selector": "#cedula" }
       ],
+      "submitSelector": "#btnGuardar",
       "mode": "auto",
       "delay": 500
     }
@@ -96,7 +120,7 @@ Tab 3: "Formulario Genérico"  ← NUEVA
 }
 ```
 
-### 6. Motor de ejecución (content.js — GENERIC_INJECTOR)
+### 7. Motor de ejecución (content.js — GENERIC_INJECTOR)
 
 ```javascript
 async start() {
@@ -106,12 +130,15 @@ async start() {
   //     querySelector(selector)
   //     fillField(el, value)  // maneja input/select/textarea
   //     sleep(delay)
+  //   Si submitSelector:
+  //     click en el botón
+  //     sleep(500)
   //   Avanza fila (auto o manual)
   // Panel de progreso
 }
 ```
 
-### 7. Formulario de prueba (sandbox.html)
+### 8. Formulario de prueba (sandbox.html)
 
 Card con:
 - input#nombre (text)
@@ -119,6 +146,7 @@ Card con:
 - input#correo (email)
 - input#telefono (tel)
 - select#cargo (option: docente, director, administrativo, tecnico)
+- button#btnGuardarGeneric → botón Guardar
 
 ## Lo que se reutiliza SIN CAMBIOS
 
@@ -135,7 +163,7 @@ Card con:
 | Sistema de pestañas | popup.js | Navegación entre tabs |
 | `findCurrentTab()` (nueva) | background.js | Encontrar pestaña activa |
 
-## Orden de implementación
+## Orden de implementación (PoC original)
 
 | Paso | Qué | Archivos |
 |---|---|---|
@@ -145,7 +173,8 @@ Card con:
 | 4 | Nuevos mensajes en background | `src/background.js` |
 | 5 | UI: 3ª pestaña (HTML) | `popup.html` |
 | 6 | UI: Lógica de detección, mapeo, ejecución | `src/popup.js` |
-| 7 | Prueba end-to-end con sandbox | manual |
+| 7 | **Botón Guardar** (post-PoC) | `sandbox.html`, `popup.html`, `popup.js`, `content.js` |
+| 8 | Prueba end-to-end con sandbox | manual |
 
 ## Prueba de validación
 
@@ -154,11 +183,12 @@ Card con:
 3. Cargar Excel con columnas: NOMBRE, CEDULA, CORREO, TELEFONO, CARGO
 4. Pulsar "Detectar Campos" → ver lista con `#nombre`, `#cedula`, `#correo`, `#telefono`, `#cargo`
 5. Mapear cada columna a su campo
-6. Guardar configuración
-7. Pulsar "Ejecutar"
-8. Verificar que el formulario se llena fila por fila correctamente
+6. Escribir `#btnGuardarGeneric` en "Selector del botón"
+7. Guardar configuración
+8. Pulsar "Ejecutar"
+9. Verificar que el formulario se llena fila por fila y el botón Guardar se clickea
 
-**Criterio de éxito:** El formulario se llena completamente sin escribir una sola línea de lógica específica para ese formulario.
+**Criterio de éxito:** El formulario se llena y se guarda completamente sin escribir una sola línea de lógica específica para ese formulario.
 
 ## Lo que NO se construye
 
@@ -168,6 +198,6 @@ Card con:
 - Compartir configuraciones
 - Multiempresa
 - SaaS / servidor
-- Click en botones del formulario destino
 - Flujos complejos (multi-paso, condicionales)
 - Soporte para iframes, shadow DOM
+- Manejo de modales/diálogos después del click (por ahora)
