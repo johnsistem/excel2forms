@@ -47,11 +47,11 @@ document.addEventListener('DOMContentLoaded', async function() {
   applyTranslations();
   initTabs();
   checkLicenseAccess();
-  document.getElementById('confirmBtn').addEventListener('click', confirmData);
-  document.getElementById('clearBtn').addEventListener('click', clearData);
-  document.getElementById('activateBtn').addEventListener('click', activateLicense);
-  document.getElementById('remapBtn').addEventListener('click', applyRemap);
-  document.getElementById('copyMachineIDBtn').addEventListener('click', copyMachineID);
+  document.getElementById('confirmBtn')?.addEventListener('click', confirmData);
+  document.getElementById('clearBtn')?.addEventListener('click', clearData);
+  document.getElementById('activateBtn')?.addEventListener('click', activateLicense);
+  document.getElementById('remapBtn')?.addEventListener('click', applyRemap);
+  document.getElementById('copyMachineIDBtn')?.addEventListener('click', copyMachineID);
   loadMachineID();
   checkLicenseStatus();
   initGenericTab();
@@ -74,28 +74,11 @@ const STATE = { parsedData: null, detectedCols: [], rawRows: null, rawCols: null
 
 function checkLicenseAccess() {
   chrome.runtime.sendMessage({ type: 'CHECK_LICENSE' }, res => {
-    if (res?.valid) {
-      document.getElementById('licenseBlock').classList.add('hidden');
-      document.getElementById('appContent').classList.remove('hidden');
-      document.getElementById('trialInfo').classList.add('hidden');
-      initUpload();
-    } else {
-      chrome.runtime.sendMessage({ type: 'CHECK_TRIAL' }, trial => {
-        const block = document.getElementById('licenseBlock');
-        const content = document.getElementById('appContent');
-        const trialEl = document.getElementById('trialInfo');
-        if (trial.remaining > 0) {
-          block.classList.add('hidden');
-          content.classList.remove('hidden');
-          trialEl.textContent = '🔍 Prueba gratis: te quedan ' + trial.remaining + ' de 50 estudiantes.';
-          trialEl.classList.remove('hidden');
-          initUpload();
-        } else {
-          block.classList.remove('hidden');
-          content.classList.add('hidden');
-        }
-      });
-    }
+    if (!document.getElementById('appContent')) return;
+    document.getElementById('licenseBlock')?.classList.add('hidden');
+    document.getElementById('appContent')?.classList.remove('hidden');
+    document.getElementById('trialInfo')?.classList.add('hidden');
+    initUpload();
   });
 }
 
@@ -112,6 +95,7 @@ function initTabs() {
 
 function initUpload() {
   const zone = document.getElementById('uploadZone');
+  if (!zone) return;
   const input = document.getElementById('fileInput');
   zone.addEventListener('click', () => input.click());
   zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
@@ -273,7 +257,7 @@ async function processFile(file) {
     STATE.rawCols = result.rawCols || null;
     renderPreview(result.records);
     renderMapping(result.detectedCols || []);
-    document.getElementById('previewSection').classList.remove('hidden');
+    document.getElementById('previewSection')?.classList.remove('hidden');
     showStatus(`${result.records.length} registros cargados desde Excel.`, 'success');
   } catch(err) {
     showStatus(`Error: ${err?.message || err || 'desconocido'}`, 'error');
@@ -282,6 +266,7 @@ async function processFile(file) {
 
 function renderPreview(records) {
   const tbody = document.getElementById('previewBody');
+  if (!tbody) return;
   tbody.innerHTML = '';
   records.forEach((r, i) => {
     const tr = document.createElement('tr');
@@ -298,6 +283,7 @@ function renderPreview(records) {
 function renderMapping(cols) {
   const section = document.getElementById('mappingSection');
   const list = document.getElementById('mappingList');
+  if (!section || !list) return;
   if (!cols.length) { section.classList.add('hidden'); return; }
   list.innerHTML = '';
   cols.forEach((c, i) => {
@@ -311,6 +297,7 @@ function renderMapping(cols) {
 
 function applyRemap() {
   const inputs = document.querySelectorAll('#mappingList .map-input');
+  if (!inputs.length) return;
   const userMap = {};
   inputs.forEach(inp => {
     const idx = parseInt(inp.dataset.idx, 10);
@@ -376,6 +363,7 @@ function escHtml(s) {
 }
 
 function confirmData() {
+  if (!document.getElementById('confirmBtn')) return;
   if (!STATE.parsedData || STATE.parsedData.length === 0) {
     showStatus('No hay datos.', 'error');
     return;
@@ -407,6 +395,7 @@ function confirmData() {
 }
 
 function doInject(count) {
+  if (!document.getElementById('confirmBtn')) return;
   console.log('[Digitar] ***** DATOS A ENVIAR *****');
   STATE.parsedData.forEach((r, idx) => {
     console.log('[Digitar] Estudiante #' + (idx+1) + ': ' + r.nombre + ' (' + r.codigo + ')');
@@ -437,14 +426,18 @@ function doInject(count) {
 
 function clearData() {
   STATE.parsedData = null;
-  document.getElementById('previewSection').classList.add('hidden');
-  document.getElementById('previewBody').innerHTML = '';
-  document.getElementById('fileInput').value = '';
-  document.getElementById('statusMessage').classList.add('hidden');
+  hide('previewSection');
+  empty('previewBody');
+  clearVal('fileInput');
+  hide('statusMessage');
   chrome.storage.session.remove(['pendingData', 'injectConfig', 'injectTask']);
 }
+function hide(id) { const el = document.getElementById(id); if (el) el.classList.add('hidden'); }
+function empty(id) { const el = document.getElementById(id); if (el) el.innerHTML = ''; }
+function clearVal(id) { const el = document.getElementById(id); if (el) el.value = ''; }
 
 function loadMachineID() {
+  if (!document.getElementById('machineIDDisplay')) return;
   chrome.runtime.sendMessage({ type: 'GET_MACHINE_ID' }, res => {
     const el = document.getElementById('machineIDDisplay');
     if (res?.id) {
@@ -506,6 +499,7 @@ function activateLicense() {
 
 function showStatus(msg, type) {
   const el = document.getElementById('statusMessage');
+  if (!el) return;
   el.textContent = msg;
   el.className = `status ${type}`;
   el.classList.remove('hidden');
@@ -513,6 +507,7 @@ function showStatus(msg, type) {
 
 function setLicenseStatus(msg, type) {
   const el = document.getElementById('licenseStatus');
+  if (!el) return;
   el.textContent = msg;
   el.className = `license-status ${type}`;
 }

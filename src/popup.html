@@ -15,56 +15,7 @@
       </nav>
     </header>
 
-    <section id="tab-scanner" class="tab-content">
-      <div id="licenseBlock" class="license-block">
-        <div class="license-block-icon">🔒</div>
-        <p class="license-block-title">Licencia no activada</p>
-        <p class="license-block-text">Andá a <strong>Configuración</strong> e ingresá tu licencia para usar la extensión.</p>
-        <button class="btn primary" onclick="document.querySelector('[data-tab=settings]').click()">Ir a Configuración</button>
-      </div>
-
-      <div id="appContent" class="hidden">
-        <div id="trialInfo" class="trial-info hidden"></div>
-        <div class="upload-zone" id="uploadZone">
-          <div class="upload-icon">+</div>
-          <p class="upload-text">Arrastra un archivo aquí o haz clic para seleccionar</p>
-          <p class="upload-hint">Formatos: Excel (.xlsx, .xls), CSV</p>
-          <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" hidden>
-        </div>
-
-        <div id="previewSection" class="hidden">
-        <h3 data-i18n="preview">Vista Previa</h3>
-
-          <div id="mappingSection" class="mapping-section hidden">
-            <h4>Mapeo de Columnas</h4>
-            <p class="mapping-hint">Verificá que cada columna del Excel se asigne a la materia correcta del sistema.</p>
-            <div id="mappingList"></div>
-            <button id="remapBtn" class="btn secondary">Re-aplicar mapeo</button>
-            <hr>
-          </div>
-
-          <div id="previewTableContainer">
-            <table id="previewTable">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Estudiante</th>
-                  <th>Código</th>
-                  <th>Materias (Mapeadas)</th>
-                </tr>
-              </thead>
-              <tbody id="previewBody"></tbody>
-            </table>
-          </div>
-          <div class="preview-actions">
-            <button id="confirmBtn" class="btn primary">Confirmar y Poblar</button>
-            <button id="clearBtn" class="btn secondary">Limpiar</button>
-          </div>
-        </div>
-
-        <div id="statusMessage" class="status hidden"></div>
-      </div>
-    </section>
+    <!-- MINED tab-scanner removed -->
 
     <section id="tab-generic" class="tab-content active">
       <div id="gfStatusMessage" class="status hidden"></div>
@@ -180,39 +131,11 @@
 
     <section id="tab-settings" class="tab-content hidden">
       <div class="settings-group">
-        <label for="modeSelect" data-i18n="minedMode">Modo de llenado</label>
-        <select id="modeSelect">
-          <option value="semi" data-i18n="minedModeSemi">Semi-automático (materia por materia)</option>
-          <option value="per_student" selected data-i18n="minedModeStudent">Por Estudiante (llena todo y se detiene)</option>
-          <option value="auto" data-i18n="minedModeAuto">Automático (todo de una)</option>
-        </select>
-      </div>
-      <div class="settings-group">
-        <label for="speedRange" data-i18n="minedSpeed">Velocidad de llenado</label>
-        <select id="speedRange">
-          <option value="5" selected data-i18n="minedSpeedFast">Rápido (5s por registro)</option>
-          <option value="10" data-i18n="minedSpeedNormal">Normal (10s por registro)</option>
-          <option value="15" data-i18n="minedSpeedSlow">Lento (15s por registro)</option>
-        </select>
-      </div>
-      <div class="settings-group">
         <label data-i18n="language">Idioma</label>
         <select id="langSelect">
           <option value="es" data-i18n="langEs">Español</option>
           <option value="en" data-i18n="langEn">Inglés</option>
         </select>
-      </div>
-      <div class="settings-group">
-        <label data-i18n="machineID">ID de Máquina</label>
-        <div class="machine-id-box" id="machineIDDisplay">Cargando...</div>
-        <button id="copyMachineIDBtn" class="btn secondary" style="font-size:11px;padding:3px 8px" data-i18n="copyID">Copiar ID</button>
-        <p class="hint" data-i18n="machineIDDesc">Este ID identifica tu PC. Enviámelo para generar tu licencia.</p>
-      </div>
-      <div class="settings-group" id="licenseActivationSection">
-        <label for="licenseInput" data-i18n="licenseKey">Clave de Licencia</label>
-        <input type="text" id="licenseInput" data-i18n="licensePlaceholder" placeholder="Pegá la licencia aquí">
-        <button id="activateBtn" class="btn secondary" data-i18n="activate">Activar</button>
-        <p id="licenseStatus" class="license-status"></p>
       </div>
       <div class="settings-group">
         <p class="version" data-i18n="version">Versión 1.0.0</p>
