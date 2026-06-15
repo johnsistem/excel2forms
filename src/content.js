@@ -520,6 +520,24 @@ const GENERIC_INJECTOR = {
   panel: null,
   resolveNext: null,
   savedRows: [],
+  failedCount: 0,
+
+  saveCheckpoint() {
+    chrome.storage.local.set({
+      genericFillState: {
+        index: this.index + 1,
+        total: this.task.rows.length,
+        processed: this.savedRows.length,
+        failed: this.failedCount,
+        status: 'running',
+        timestamp: Date.now()
+      }
+    });
+  },
+
+  clearCheckpoint() {
+    chrome.storage.local.remove('genericFillState');
+  },
 
   async start(taskData) {
     if (this.running) return;
@@ -529,15 +547,20 @@ const GENERIC_INJECTOR = {
       return;
     }
     this.running = true;
-    this.index = 0;
+    this.index = this.task.startIndex || 0;
     this.savedRows = [];
-    this.createPanel();
+    this.failedCount = 0;
+    this.results = [];
     try {
-      while (this.running && this.index < this.task.rows.length) {
-        const row = this.task.rows[this.index];
-        const pct = Math.round((this.index / this.task.rows.length) * 100);
-        const rowLabel = `Registro ${this.index + 1}/${this.task.rows.length}`;
-        this.updatePanel(rowLabel, pct);
+    this.createPanel();
+    while (this.running && this.index < this.task.rows.length) {
+      const row = this.task.rows[this.index];
+      const pct = Math.round((this.index / this.task.rows.length) * 100);
+      const rowLabel = `Registro ${this.index + 1}/${this.task.rows.length}`;
+      this.updatePanel(rowLabel, pct);
+      let rowOk = true;
+      let rowError = '';
+      try {
         for (const field of this.task.fields) {
           if (!this.running) break;
           const value = row[field.excelColumn];
@@ -554,11 +577,9 @@ const GENERIC_INJECTOR = {
         if (this.running && this.task.config?.submitSelector) {
           this.log(`Ejecutando submit: ${this.task.config.submitSelector}`);
           this.savedRows.push({ row, index: this.index + 1 });
-          // Inject script to click button (page world)
           const s = document.createElement('script');
           s.textContent = `(function(){var b=document.querySelector('${this.task.config.submitSelector}');if(b){b.disabled=false;b.click();}})();`;
           document.body.appendChild(s); s.remove();
-          // Direct DOM append to sandbox grid
           const gfTbody = document.querySelector('#gfGridBody');
           if (gfTbody) {
             const tr = document.createElement('tr');
@@ -571,20 +592,26 @@ const GENERIC_INJECTOR = {
           }
           await this.sleep(600);
         }
-        this.index++;
-        if (this.index < this.task.rows.length && this.running) {
-          if (this.task.config?.mode === 'manual') {
-            this.showNextButton();
-            await this.waitForClick();
-          } else {
-            this.showAutoStatus(true);
-            await this.sleep(800);
-          }
+      } catch (e) {
+        rowOk = false;
+        rowError = e?.message || String(e);
+        this.failedCount++;
+        this.log(`Error en fila ${this.index + 1}: ${rowError}`);
+      }
+      this.results.push({ data: row, status: rowOk ? 'ok' : 'error', error: rowError });
+      this.saveCheckpoint();
+      this.index++;
+      if (this.index < this.task.rows.length && this.running) {
+        if (this.task.config?.mode === 'manual') {
+          this.showNextButton(!rowOk, null);
+          await this.waitForClick();
+        } else {
+          this.showAutoStatus(true);
+          await this.sleep(800);
         }
       }
-    } catch (e) {
-      this.notify('ERROR: ' + (e?.message || e));
     }
+    this.clearCheckpoint();
     if (this.running) {
       this.updatePanel('Completado ✓', 100);
       this.showAutoStatus(false);
@@ -592,6 +619,12 @@ const GENERIC_INJECTOR = {
       if (this.savedRows.length > 0 && this.task.config?.showSummary !== false) this.showSummaryModal();
     }
     this.running = false;
+    } catch (e) {
+      this.log(`Error general en start(): ${e?.message || e}`);
+      this.notify('Error: ' + (e?.message || e));
+      this.clearCheckpoint();
+      this.running = false;
+    }
   },
 
   scanFields() {
@@ -692,16 +725,33 @@ const GENERIC_INJECTOR = {
     document.getElementById('dpg_stop').onclick = () => this.stop();
   },
 
-  showNextButton() {
+  showNextButton(isError, retryFn) {
     this.ensurePanel();
     const actions = document.getElementById('dpg_actions');
     if (!actions) return;
-    actions.innerHTML = `
-      <button class="dpg-btn dpg-btn-primary" id="dpg_next">Siguiente →</button>
-      <button class="dpg-btn dpg-btn-stop" id="dpg_stop2">Detener</button>
-    `;
-    document.getElementById('dpg_next').onclick = () => { if (this.resolveNext) this.resolveNext(); };
-    document.getElementById('dpg_stop2').onclick = () => this.stop();
+    if (isError) {
+      actions.innerHTML = `
+        <span style="font-size:11px;color:#f87171;flex:1">✗ Error</span>
+        <button class="dpg-btn" style="background:#4b5563;color:#fff" id="dpg_skip">Saltar</button>
+        <button class="dpg-btn dpg-btn-primary" id="dpg_retry">Reintentar</button>
+        <button class="dpg-btn dpg-btn-stop" id="dpg_stop4">Detener</button>
+      `;
+      document.getElementById('dpg_skip').onclick = () => { if (this.resolveNext) this.resolveNext(); };
+      document.getElementById('dpg_retry').onclick = () => {
+        this.index--;
+        this.failedCount--;
+        this.results.pop();
+        if (this.resolveNext) this.resolveNext();
+      };
+      document.getElementById('dpg_stop4').onclick = () => this.stop();
+    } else {
+      actions.innerHTML = `
+        <button class="dpg-btn dpg-btn-primary" id="dpg_next">Siguiente →</button>
+        <button class="dpg-btn dpg-btn-stop" id="dpg_stop2">Detener</button>
+      `;
+      document.getElementById('dpg_next').onclick = () => { if (this.resolveNext) this.resolveNext(); };
+      document.getElementById('dpg_stop2').onclick = () => this.stop();
+    }
   },
 
   showAutoStatus(hasNext) {
@@ -732,24 +782,51 @@ const GENERIC_INJECTOR = {
       display: 'flex', alignItems: 'center', justifyContent: 'center',
     });
     const cols = this.task.fields.map(f => f.excelColumn);
-    const rows = this.savedRows;
+    const rows = this.results.filter(r => r.status === 'ok');
+    const errors = this.results.filter(r => r.status === 'error');
     modal.innerHTML = `
       <div style="background:#1e293b;border-radius:8px;padding:16px;max-width:90vw;max-height:80vh;overflow:auto;color:#e2e8f0;font:13px sans-serif;box-shadow:0 8px 32px rgba(0,0,0,.5)">
-        <h3 style="margin:0 0 8px;font-size:15px;color:#f59e0b">✓ Llenado completado — ${rows.length} registros</h3>
+        <h3 style="margin:0 0 8px;font-size:15px;color:#f59e0b">✓ Llenado completado</h3>
+        <p style="font-size:13px;margin-bottom:12px;color:#94a3b8">
+          Correctos: <strong style="color:#4ade80">${rows.length}</strong>
+          ${errors.length ? ' | Errores: <strong style="color:#f87171">' + errors.length + '</strong>' : ''}
+        </p>
         <table style="width:100%;border-collapse:collapse;font-size:11px">
           <thead>
-            <tr>${['#', ...cols].map(c => `<th style="padding:5px 8px;text-align:left;border-bottom:2px solid #f59e0b;background:#334155;color:#f59e0b;white-space:nowrap">${c}</th>`).join('')}</tr>
+            <tr>${['#', ...cols, 'Estado'].map(c => `<th style="padding:5px 8px;text-align:left;border-bottom:2px solid #f59e0b;background:#334155;color:#f59e0b;white-space:nowrap">${c}</th>`).join('')}</tr>
           </thead>
           <tbody>
-            ${rows.map(r => `<tr>${['', ...cols].map((c, i) => `<td style="padding:4px 8px;border-bottom:1px solid #334155;white-space:nowrap">${i === 0 ? r.index : String(r.row[c] || '').slice(0, 30)}</td>`).join('')}</tr>`).join('')}
+            ${this.results.map((r, idx) => `
+              <tr>
+                <td style="padding:4px 8px;border-bottom:1px solid #334155">${idx + 1}</td>
+                ${cols.map(c => `<td style="padding:4px 8px;border-bottom:1px solid #334155;white-space:nowrap">${String(r.data[c] || '').slice(0, 30)}</td>`).join('')}
+                <td style="padding:4px 8px;border-bottom:1px solid #334155;color:${r.status === 'ok' ? '#4ade80' : '#f87171'}">${r.status === 'ok' ? '✓ OK' : '✗ ' + r.error}</td>
+              </tr>
+            `).join('')}
           </tbody>
         </table>
-        <div style="text-align:center;margin-top:12px">
+        <div style="text-align:center;margin-top:12px;display:flex;gap:8px;justify-content:center">
+          <button id="__digitar_export_report" style="background:#3b82f6;color:#fff;border:none;border-radius:4px;padding:8px 24px;cursor:pointer;font-weight:600;font-size:13px">📥 Descargar Reporte</button>
           <button id="__digitar_close_summary" style="background:#f59e0b;color:#000;border:none;border-radius:4px;padding:8px 24px;cursor:pointer;font-weight:600;font-size:13px">Cerrar</button>
         </div>
       </div>`;
     document.body.appendChild(modal);
     document.getElementById('__digitar_close_summary').onclick = () => modal.remove();
+    document.getElementById('__digitar_export_report').onclick = () => {
+      const header = ['#', ...cols, 'Estado', 'MensajeError'];
+      const body = this.results.map((r, idx) => {
+        const vals = cols.map(c => String(r.data[c] || '').replace(/,/g, ';'));
+        const status = r.status === 'ok' ? 'Éxito' : 'Error';
+        return [idx + 1, ...vals, status, r.error || ''].join(',');
+      });
+      const csv = [header.join(','), ...body].join('\n');
+      const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'reporte-' + Date.now() + '.csv';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    };
     modal.onclick = e => { if (e.target === modal) modal.remove(); };
   },
 
@@ -767,6 +844,7 @@ const GENERIC_INJECTOR = {
 
   stop() {
     this.running = false;
+    this.clearCheckpoint();
     if (this.resolveNext) { this.resolveNext(); this.resolveNext = null; }
     if (this.panel && this.panel.parentNode) this.panel.remove();
     this.panel = null;

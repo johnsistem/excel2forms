@@ -101,6 +101,11 @@
   "genericConfigDeleted": { "message": "Configuración eliminada." },
   "genericInjecting": { "message": "Inyectando {0} registros..." },
   "genericStopped": { "message": "Llenado detenido." },
+  "resumeTitle": { "message": "⏸ Ejecución pausada" },
+  "resumeText": { "message": "Se procesaron {0} de {1} registros antes de cerrar. ¿Qué querés hacer?" },
+  "resumeBtn": { "message": "▶ Reanudar" },
+  "restartBtn": { "message": "⟳ Reiniciar" },
+  "resumeStarting": { "message": "Reanudando desde el registro {0}..." },
   "unknown": { "message": "desconocido" },
   "loading": { "message": "Cargando..." },
   "copied": { "message": "✓ Copiado" }

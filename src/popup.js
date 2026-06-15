@@ -55,6 +55,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   loadMachineID();
   checkLicenseStatus();
   initGenericTab();
+  checkGenericResume();
 
   // Language selector
   const langSelect = document.getElementById('langSelect');
@@ -785,31 +786,77 @@ function deleteGenericConfig(idx) {
   });
 }
 
-function executeGenericFill() {
+function executeGenericFill(startIndex, savedFields) {
+  if (typeof startIndex !== 'number' || startIndex < 0) startIndex = 0;
   if (!GF.excelData || GF.excelData.length === 0) {
     gfShowStatus(t('noExcelData'), 'error');
     return;
   }
-  const mapping = buildMapping();
-  if (mapping.length === 0) {
-    gfShowStatus(t('noMappingAssigned'), 'error');
-    return;
+  let mapping;
+  if (startIndex > 0 && savedFields && savedFields.length > 0) {
+    mapping = savedFields;
+  } else {
+    mapping = buildMapping();
+    if (mapping.length === 0) {
+      gfShowStatus(t('noMappingAssigned'), 'error');
+      return;
+    }
   }
   const mode = document.getElementById('gfModeSelect').value;
   const delay = parseInt(document.getElementById('gfSpeedRange').value, 10);
   const submitSelector = document.getElementById('gfSubmitSelector').value.trim() || '';
   const showSummary = document.getElementById('gfShowSummary').checked;
-  gfShowStatus(t('executingRecords', GF.excelData.length), 'info');
+  const checkpoint = {
+    index: startIndex,
+    total: GF.excelData.length,
+    processed: startIndex > 0 ? startIndex : 0,
+    failed: 0,
+    rows: GF.excelData,
+    fields: mapping,
+    config: { mode, delay, submitSelector, showSummary },
+    fileName: GF.fileName,
+    status: 'running',
+    timestamp: Date.now()
+  };
+  chrome.storage.local.set({ genericFillState: checkpoint });
+  gfShowStatus(startIndex > 0 ? t('resumeStarting', startIndex + 1) : t('executingRecords', GF.excelData.length), 'info');
   chrome.runtime.sendMessage({
     type: 'GENERIC_FILL_START',
-    payload: { rows: GF.excelData, fields: mapping, config: { mode, delay, submitSelector, showSummary } }
+    payload: { rows: GF.excelData, fields: mapping, config: { mode, delay, submitSelector, showSummary }, startIndex }
   }, res => {
-    if (res?.ok) gfShowStatus(t('genericInjecting', GF.excelData.length), 'success');
+    if (res?.ok) {
+      if (startIndex === 0) gfShowStatus(t('genericInjecting', GF.excelData.length), 'success');
+    }
     else if (res?.error) gfShowStatus(res.error, 'error');
   });
 }
 
 function stopGenericFill() {
   chrome.runtime.sendMessage({ type: 'GENERIC_FILL_STOP' });
+  chrome.storage.local.remove('genericFillState');
   gfShowStatus(t('genericStopped'), 'info');
+}
+
+function checkGenericResume() {
+  chrome.storage.local.get('genericFillState', res => {
+    const state = res.genericFillState;
+    if (!state || state.status !== 'running' || state.index >= state.total) return;
+    document.getElementById('gfResumeBanner').classList.remove('hidden');
+    document.getElementById('gfResumeText').textContent = t('resumeText', state.index, state.total);
+    document.getElementById('gfResumeBtn').onclick = () => {
+      document.getElementById('gfResumeBanner').classList.add('hidden');
+      GF.excelData = state.rows;
+      GF.fileName = state.fileName || '';
+      document.getElementById('gfModeSelect').value = state.config.mode;
+      document.getElementById('gfSpeedRange').value = state.config.delay;
+      document.getElementById('gfSubmitSelector').value = state.config.submitSelector || '';
+      document.getElementById('gfShowSummary').checked = state.config.showSummary !== false;
+      executeGenericFill(state.index, state.fields);
+    };
+    document.getElementById('gfRestartBtn').onclick = () => {
+      document.getElementById('gfResumeBanner').classList.add('hidden');
+      chrome.storage.local.remove('genericFillState');
+      chrome.runtime.sendMessage({ type: 'GENERIC_FILL_STOP' });
+    };
+  });
 }
