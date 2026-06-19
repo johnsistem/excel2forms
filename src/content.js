@@ -12,7 +12,6 @@ const INJECTOR = {
 
   async init() {
     this.notify('Content script cargado en la página');
-    if (window.__sandboxLog) window.__sandboxLog('info', '[CS] init()');
     // Solo leer de storage si no tenemos datos ya (ej: llegaron por mensaje)
     if (!this.task) {
       const result = await chrome.storage.session.get('injectTask');
@@ -32,16 +31,6 @@ const INJECTOR = {
       this.notify('No hay datos.');
       return;
     }
-    // DEBUG: log data received
-    this.log('***** DATA RECIBIDA EN CONTENT SCRIPT *****');
-    this.task.data.forEach((r, idx) => {
-      this.log('Estudiante #' + (idx+1) + ': ' + r.nombre + ' (' + r.codigo + ')');
-      r.materias.forEach((m, mi) => {
-        this.log('  [' + mi + '] ' + m.nombre + ' → cual=' + m.cualitativo + ' cuant=' + m.cuantitativo);
-      });
-    });
-    this.log('***** FIN DATA *****');
-
     this.running = true;
     this.index = 0; // Asegurarnos de empezar desde 0
     this.subjectIndex = 0; // Asegurarnos de empezar desde 0
@@ -62,7 +51,6 @@ const INJECTOR = {
       }
     } catch (e) {
       this.notify('ERROR: ' + (e?.message || e));
-      console.error('[DigitarExtension]', e);
     }
     this.running = false;
   },
@@ -93,7 +81,7 @@ const INJECTOR = {
         #__digitar_panel .dp-btn-secondary { background: #374151; color: #9ca3af; }
         #__digitar_panel .dp-btn-stop { background: #ef4444; color: #fff; }
       </style>
-      <div class="dp-hdr">🐛 [DEBUG] DigitarExtension</div>
+      <div class="dp-hdr">DigitarExtension</div>
       <div class="dp-name" id="dp_name">Iniciando...</div>
       <div class="dp-bar"><div class="dp-fill" id="dp_fill" style="width:0%"></div></div>
       <div class="dp-actions" id="dp_actions">
@@ -497,12 +485,10 @@ const INJECTOR = {
   },
 
   log(msg) {
-    console.log('[Digitar]', msg);
     document.dispatchEvent(new CustomEvent('__digitar_log', { detail: msg }));
   },
 
   notify(msg) {
-    console.log('[DigitarExtension]', msg);
     document.dispatchEvent(new CustomEvent('__digitar_log', { detail: msg }));
     chrome.runtime.sendMessage({ type: 'INJECT_PROGRESS', payload: { message: msg } });
   },
@@ -851,12 +837,10 @@ const GENERIC_INJECTOR = {
   },
 
   log(msg) {
-    console.log('[DigitarGeneric]', msg);
     document.dispatchEvent(new CustomEvent('__digitar_log', { detail: '[GF] ' + msg }));
   },
 
   notify(msg) {
-    console.log('[DigitarGeneric]', msg);
     document.dispatchEvent(new CustomEvent('__digitar_log', { detail: '[GF] ' + msg }));
     chrome.runtime.sendMessage({ type: 'GENERIC_PROGRESS', payload: { message: msg } });
   },

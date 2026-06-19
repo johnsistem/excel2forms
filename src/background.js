@@ -1,5 +1,5 @@
 const SECRET = 'Digitar2024!MachineLock';
-const MAX_TRIAL_STUDENTS = 50;
+const MAX_TRIAL_STUDENTS = 500;
 
 async function getTrialUsed() {
   const result = await chrome.storage.local.get('trialUsed');
@@ -37,8 +37,7 @@ async function validateLicense(token) {
   const [expiryStr, hashPart] = parts;
   const expiry = new Date(expiryStr + 'T23:59:59');
   if (isNaN(expiry.getTime()) || expiry < new Date()) return { valid: false, expired: true };
-  const machineID = await getMachineID();
-  const data = new TextEncoder().encode(machineID + ':' + expiryStr + ':' + SECRET);
+  const data = new TextEncoder().encode(expiryStr + ':' + SECRET);
   const hash = await crypto.subtle.digest('SHA-256', data);
   const hashArray = Array.from(new Uint8Array(hash));
   const expected = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');

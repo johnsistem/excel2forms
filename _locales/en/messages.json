@@ -98,6 +98,17 @@
   "loading": { "message": "Loading..." },
   "copied": { "message": "✓ Copied" },
 
+  "licenseActivate": { "message": "Activate License" },
+  "licenseRequired": { "message": "License Required" },
+  "licenseBlockText": { "message": "This extension requires a valid license to function. Enter your license key in Settings." },
+  "goToSettings": { "message": "Go to Settings" },
+  "machineIDHint": { "message": "This ID identifies your PC. Send it to the developer to generate your license." },
+  "licenseInfoText": { "message": "No license or have questions?" },
+
+  "trialRemaining": { "message": "Free trial: {0} records remaining" },
+  "trialExhausted": { "message": "Trial limit reached (500 trial records). Activate a license in Settings." },
+  "trialInsufficient": { "message": "Only {0} trial records remaining. Load a smaller file ({1} required)." },
+
   "language": { "message": "Language" },
   "langEs": { "message": "Spanish" },
   "langEn": { "message": "English" },

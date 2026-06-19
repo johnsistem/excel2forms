@@ -17,6 +17,14 @@
 
     <!-- MINED tab-scanner removed -->
 
+    <div id="trialInfo" class="trial-info hidden"></div>
+    <div id="licenseBlock" class="license-block hidden">
+      <div class="license-block-icon">🔒</div>
+      <div class="license-block-title" data-i18n="licenseRequired">Licencia Requerida</div>
+      <div class="license-block-text" data-i18n="licenseBlockText">Esta extensión requiere una licencia válida para funcionar. Ingresá tu clave de licencia en Configuración.</div>
+      <button class="btn primary" onclick="document.querySelector('[data-tab=settings]').click()" data-i18n="goToSettings">Ir a Configuración</button>
+    </div>
+
     <section id="tab-generic" class="tab-content active">
       <div id="gfResumeBanner" class="hidden" style="background:#1e3a5f;border:1px solid #60a5fa;border-radius:8px;padding:12px;margin-bottom:12px">
         <p style="font-size:13px;font-weight:600;color:#60a5fa;margin-bottom:6px" data-i18n="resumeTitle">⏸ Ejecución pausada</p>
@@ -138,6 +146,20 @@
     </section>
 
     <section id="tab-settings" class="tab-content hidden">
+      <div id="licenseActivationSection">
+        <div class="settings-group">
+          <label data-i18n="licenseActivate">Activar Licencia</label>
+          <input type="text" id="licenseInput" placeholder="YYYY-MM-DD:&lt;hash&gt;" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;background:#111827;color:#e5e7eb;font-family:monospace">
+          <button id="activateBtn" class="btn primary" style="margin-top:4px;width:100%" data-i18n="activate">▶ Activar</button>
+          <div id="licenseStatus" class="license-status"></div>
+        </div>
+
+        <div class="settings-group" style="text-align:center;padding-top:8px;border-top:1px solid #374151">
+          <p style="font-size:12px;color:#9ca3af;margin-bottom:6px" data-i18n="licenseInfoText">¿Sin licencia o tenés dudas?</p>
+          <a id="licenseInfoLink" href="#" target="_blank" style="display:inline-block;background:#25D366;color:#fff;text-decoration:none;padding:8px 20px;border-radius:6px;font-weight:600;font-size:13px">💬 Contactar</a>
+        </div>
+      </div>
+
       <div class="settings-group">
         <label data-i18n="language">Idioma</label>
         <select id="langSelect">

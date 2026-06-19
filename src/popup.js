@@ -57,6 +57,9 @@ document.addEventListener('DOMContentLoaded', async function() {
   initGenericTab();
   checkGenericResume();
 
+  const link = document.getElementById('licenseInfoLink');
+  if (link) link.href = 'https://nocodeapps.carrd.co/';
+
   // Language selector
   const langSelect = document.getElementById('langSelect');
   if (langSelect) {
@@ -75,11 +78,31 @@ const STATE = { parsedData: null, detectedCols: [], rawRows: null, rawCols: null
 
 function checkLicenseAccess() {
   chrome.runtime.sendMessage({ type: 'CHECK_LICENSE' }, res => {
-    if (!document.getElementById('appContent')) return;
-    document.getElementById('licenseBlock')?.classList.add('hidden');
-    document.getElementById('appContent')?.classList.remove('hidden');
-    document.getElementById('trialInfo')?.classList.add('hidden');
-    initUpload();
+    if (res?.valid) {
+      document.getElementById('licenseBlock')?.classList.add('hidden');
+      document.getElementById('licenseActivationSection')?.classList.add('hidden');
+      document.getElementById('trialInfo')?.classList.add('hidden');
+      document.getElementById('tab-generic')?.classList.remove('hidden');
+      initUpload();
+    } else {
+      chrome.runtime.sendMessage({ type: 'CHECK_TRIAL' }, trial => {
+        if (trial.remaining > 0) {
+          document.getElementById('licenseBlock')?.classList.add('hidden');
+          document.getElementById('licenseActivationSection')?.classList.remove('hidden');
+          document.getElementById('tab-generic')?.classList.remove('hidden');
+          const trialInfo = document.getElementById('trialInfo');
+          if (trialInfo) {
+            trialInfo.classList.remove('hidden');
+            trialInfo.textContent = t('trialRemaining', trial.remaining);
+          }
+          initUpload();
+        } else {
+          document.getElementById('licenseBlock')?.classList.remove('hidden');
+          document.getElementById('licenseActivationSection')?.classList.remove('hidden');
+          document.getElementById('tab-generic')?.classList.add('hidden');
+        }
+      });
+    }
   });
 }
 
@@ -152,7 +175,6 @@ function mapSubjectName(name, mapOverride) {
   const normal = normalizeName(t);
   const map = mapOverride || SUBJECT_MAP;
   const mapped = map[t] || map[normal] || t;
-  if (mapped !== t) console.log('[Digitar] Mapeada materia: "' + t + '" → "' + mapped + '"');
   return mapped;
 }
 
@@ -182,8 +204,6 @@ function parseExcel(buf) {
     if (nonEmpty[i].some(c => nameKw.test(String(c)))) { hdr = i; break; }
   }
   const cols = nonEmpty[hdr].map(h => String(h).trim());
-  console.log('[Digitar] Columnas detectadas:', JSON.stringify(cols));
-  console.log('[Digitar] Total columnas:', cols.length);
   const data = rows.slice(hdr + 1).filter(r => r.some(c => String(c).trim() !== ''));
 
   let nameCol = -1, codeCol = -1, promCol = -1;
@@ -197,16 +217,11 @@ function parseExcel(buf) {
     subjCols.push(i);
   }
   if (nameCol < 0) nameCol = 0;
-  console.log('[Digitar] nameCol=' + nameCol + ' codeCol=' + codeCol + ' promCol=' + promCol + ' subjCols=' + JSON.stringify(subjCols));
 
   const records = [];
   for (const r of data) {
     const nombre = String(r[nameCol] || '').trim();
     if (!nombre) continue;
-    
-    // DEBUG: Imprimir la fila cruda leída por XLSX
-    console.log(`[Digitar] Fila cruda de ${nombre}:`, JSON.stringify(r));
-    console.log(`[Digitar] Largo cols=${cols.length}, largo row=${r.length}`);
     
     const codigo = codeCol >= 0 ? String(r[codeCol] || '').trim() : '';
     const materias = subjCols.filter(i => i !== promCol && cols[i]).map(i => {
@@ -397,14 +412,6 @@ function confirmData() {
 
 function doInject(count) {
   if (!document.getElementById('confirmBtn')) return;
-  console.log('[Digitar] ***** DATOS A ENVIAR *****');
-  STATE.parsedData.forEach((r, idx) => {
-    console.log('[Digitar] Estudiante #' + (idx+1) + ': ' + r.nombre + ' (' + r.codigo + ')');
-    r.materias.forEach((m, mi) => {
-      console.log('[Digitar]   [' + mi + '] ' + m.nombre + ' → cual=' + m.cualitativo + ' cuant=' + m.cuantitativo);
-    });
-  });
-  console.log('[Digitar] ***** FIN DATOS *****');
   const mode = document.getElementById('modeSelect').value;
   const speed = parseInt(document.getElementById('speedRange').value, 10);
   chrome.storage.session.set({
@@ -802,36 +809,83 @@ function executeGenericFill(startIndex, savedFields) {
       return;
     }
   }
-  const mode = document.getElementById('gfModeSelect').value;
-  const delay = parseInt(document.getElementById('gfSpeedRange').value, 10);
-  const submitSelector = document.getElementById('gfSubmitSelector').value.trim() || '';
-  const showSummary = document.getElementById('gfShowSummary').checked;
-  const checkpoint = {
-    index: startIndex,
-    total: GF.excelData.length,
-    processed: startIndex > 0 ? startIndex : 0,
-    failed: 0,
-    rows: GF.excelData,
-    fields: mapping,
-    config: { mode, delay, submitSelector, showSummary },
-    fileName: GF.fileName,
-    status: 'running',
-    timestamp: Date.now()
+
+  const doFill = () => {
+    setGenericRunning(true);
+    const mode = document.getElementById('gfModeSelect').value;
+    const delay = parseInt(document.getElementById('gfSpeedRange').value, 10);
+    const submitSelector = document.getElementById('gfSubmitSelector').value.trim() || '';
+    const showSummary = document.getElementById('gfShowSummary').checked;
+    const checkpoint = {
+      index: startIndex,
+      total: GF.excelData.length,
+      processed: startIndex > 0 ? startIndex : 0,
+      failed: 0,
+      rows: GF.excelData,
+      fields: mapping,
+      config: { mode, delay, submitSelector, showSummary },
+      fileName: GF.fileName,
+      status: 'running',
+      timestamp: Date.now()
+    };
+    chrome.storage.local.set({ genericFillState: checkpoint });
+    gfShowStatus(startIndex > 0 ? t('resumeStarting', startIndex + 1) : t('executingRecords', GF.excelData.length), 'info');
+    chrome.runtime.sendMessage({
+      type: 'GENERIC_FILL_START',
+      payload: { rows: GF.excelData, fields: mapping, config: { mode, delay, submitSelector, showSummary }, startIndex }
+    }, res => {
+      if (res?.ok) {
+        if (startIndex === 0) gfShowStatus(t('genericInjecting', GF.excelData.length), 'success');
+      }
+      else if (res?.error) gfShowStatus(res.error, 'error');
+    });
   };
-  chrome.storage.local.set({ genericFillState: checkpoint });
-  gfShowStatus(startIndex > 0 ? t('resumeStarting', startIndex + 1) : t('executingRecords', GF.excelData.length), 'info');
-  chrome.runtime.sendMessage({
-    type: 'GENERIC_FILL_START',
-    payload: { rows: GF.excelData, fields: mapping, config: { mode, delay, submitSelector, showSummary }, startIndex }
-  }, res => {
-    if (res?.ok) {
-      if (startIndex === 0) gfShowStatus(t('genericInjecting', GF.excelData.length), 'success');
+
+  // Si es reanudación (startIndex > 0), ya se descontó al iniciar — no descuenta de nuevo
+  if (startIndex > 0) {
+    doFill();
+    return;
+  }
+
+  chrome.runtime.sendMessage({ type: 'CHECK_LICENSE' }, res => {
+    if (res?.valid) {
+      doFill();
+    } else {
+      const count = GF.excelData.length;
+      chrome.runtime.sendMessage({ type: 'CHECK_TRIAL' }, trial => {
+        if (trial.remaining >= count) {
+          chrome.runtime.sendMessage({ type: 'USE_TRIAL', payload: { count } }, useResult => {
+            if (useResult.allowed) {
+              doFill();
+            } else {
+              gfShowStatus(t('trialInsufficient', useResult.remaining, count), 'error');
+            }
+          });
+        } else {
+          if (trial.remaining <= 0) {
+            gfShowStatus(t('trialExhausted'), 'error');
+          } else {
+            gfShowStatus(t('trialInsufficient', trial.remaining, count), 'error');
+          }
+        }
+      });
     }
-    else if (res?.error) gfShowStatus(res.error, 'error');
   });
 }
 
+function setGenericRunning(running) {
+  const btn = document.getElementById('gfExecuteBtn');
+  const stop = document.getElementById('gfStopBtn');
+  const detect = document.getElementById('gfDetectBtn');
+  const zone = document.getElementById('gfUploadZone');
+  if (btn) btn.disabled = running;
+  if (stop) stop.disabled = !running;
+  if (detect) detect.disabled = running;
+  if (zone) zone.style.pointerEvents = running ? 'none' : '';
+}
+
 function stopGenericFill() {
+  setGenericRunning(false);
   chrome.runtime.sendMessage({ type: 'GENERIC_FILL_STOP' });
   chrome.storage.local.remove('genericFillState');
   gfShowStatus(t('genericStopped'), 'info');
@@ -840,7 +894,11 @@ function stopGenericFill() {
 function checkGenericResume() {
   chrome.storage.local.get('genericFillState', res => {
     const state = res.genericFillState;
-    if (!state || state.status !== 'running' || state.index >= state.total) return;
+    if (!state || state.status !== 'running' || state.index >= state.total) {
+      setGenericRunning(false);
+      return;
+    }
+    setGenericRunning(true);
     document.getElementById('gfResumeBanner').classList.remove('hidden');
     document.getElementById('gfResumeText').textContent = t('resumeText', state.index, state.total);
     document.getElementById('gfResumeBtn').onclick = () => {
@@ -857,6 +915,7 @@ function checkGenericResume() {
       document.getElementById('gfResumeBanner').classList.add('hidden');
       chrome.storage.local.remove('genericFillState');
       chrome.runtime.sendMessage({ type: 'GENERIC_FILL_STOP' });
+      setGenericRunning(false);
     };
   });
 }

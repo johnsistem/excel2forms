@@ -6,10 +6,10 @@
 3. Click "Cargar descomprimida" → seleccioná la carpeta `dist-usb/`
 4. La extensión aparece como "Digitar Asistente"
 
-## Prueba gratuita (50 estudiantes)
-- Sin licencia, se pueden procesar hasta **50 estudiantes en total**
-- El contador descuenta al hacer click en "Confirmar y Poblar"
-- Se muestra un banner con los estudiantes restantes
+## Prueba gratuita (500 registros)
+- Sin licencia, se pueden procesar hasta **500 registros en total**
+- El contador descuenta al hacer click en **Ejecutar**
+- Se muestra un mensaje con los registros restantes
 - Al llegar a 0, se bloquea y pide licencia
 - El contador se guarda en `chrome.storage.local` (perfil de Chrome)
 - Al desinstalar la extensión, el contador se borra
@@ -17,28 +17,20 @@
 ## Licencias
 ### Generar licencia (solo el desarrollador)
 ```bash
-node tools/generar-licencia.js <ID_MAQUINA> [vencimiento]
-```
-
-Ejemplos:
-```bash
 # 1 año (default)
-node tools/generar-licencia.js a1b2c3d4e5f6
+node tools/generar-licencia.js
 
 # 6 meses
-node tools/generar-licencia.js a1b2c3d4e5f6 6m
+node tools/generar-licencia.js 6m
 
 # 3 meses
-node tools/generar-licencia.js a1b2c3d4e5f6 3m
+node tools/generar-licencia.js 3m
 
 # Fecha exacta
-node tools/generar-licencia.js a1b2c3d4e5f6 2026-12-31
+node tools/generar-licencia.js 2026-12-31
 ```
 
-El token generado se envía al cliente para que lo pegue en Configuración.
-
-### Cómo conseguir el ID de máquina
-El cliente abre la extensión → pestaña **Configuración** → copia el **ID de Máquina** y te lo envía.
+El token generado es **universal** (no está atado a un ID de máquina). Se envía al cliente para que lo pegue en la extensión → Configuración → Activar Licencia.
 
 ### Formato del token
 ```
@@ -46,11 +38,8 @@ YYYY-MM-DD:<hash_sha256>
 ```
 
 ## Seguridad
-- **Machine Locking**: la licencia está hasheada con el ID único de la PC (`chrome.runtime.id` + UUID)
-- **Desinstalación**: al desinstalar, Chrome borra `chrome.storage.local` (ID, licencia, contador)
-- **Reinstalación**: Chrome asigna un nuevo ID → licencia vieja no sirve → el cliente pide un nuevo token
-- **PC dañada / cambio de PC**: mismo caso, se genera nuevo token
-- **USB a otra PC**: el ID cambia al cargar la extensión, token no sirve
+- **Token universal**: no requiere ID de máquina, cualquier PC puede usarlo
+- **Desinstalación**: al desinstalar, Chrome borra `chrome.storage.local` (licencia, contador trial)
 
 ## Construir la extensión
 ```bash

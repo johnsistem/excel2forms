@@ -73,6 +73,17 @@
   "submitLabel": { "message": "Botón Guardar" },
   "submitHelp": { "message": "Detectá campos y hacé clic en un botón de la lista para llenar esto automáticamente." },
 
+  "licenseActivate": { "message": "Activar Licencia" },
+  "licenseRequired": { "message": "Licencia Requerida" },
+  "licenseBlockText": { "message": "Esta extensión requiere una licencia válida para funcionar. Ingresá tu clave de licencia en Configuración." },
+  "goToSettings": { "message": "Ir a Configuración" },
+  "machineIDHint": { "message": "Este ID identifica tu PC. Enviáselo al desarrollador para generar tu licencia." },
+  "licenseInfoText": { "message": "¿Sin licencia o tenés dudas?" },
+
+  "trialRemaining": { "message": "Prueba gratuita: {0} registros restantes" },
+  "trialExhausted": { "message": "Límite de prueba alcanzado (500 registros de prueba). Activá una licencia en Configuración." },
+  "trialInsufficient": { "message": "Solo te quedan {0} registros de prueba. Cargá un archivo más pequeño ({1} requeridos)." },
+
   "language": { "message": "Idioma" },
   "langEs": { "message": "Español" },
   "langEn": { "message": "Inglés" },
