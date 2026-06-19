@@ -566,14 +566,14 @@ const GENERIC_INJECTOR = {
           const s = document.createElement('script');
           s.textContent = `(function(){var b=document.querySelector('${this.task.config.submitSelector}');if(b){b.disabled=false;b.click();}})();`;
           document.body.appendChild(s); s.remove();
-          const gfTbody = document.querySelector('#gfGridBody');
+          const gfTbody = document.querySelector('#gfGridBody, #gridBody');
           if (gfTbody) {
             const tr = document.createElement('tr');
             const vals = this.task.fields.map(f => row[f.excelColumn] || '');
             tr.innerHTML = `<td style="padding:6px 8px;border-bottom:1px solid #e0e0e0">${this.index+1}</td>` +
               vals.map(v => `<td style="padding:6px 8px;border-bottom:1px solid #e0e0e0">${String(v).slice(0,25)}</td>`).join('');
             gfTbody.appendChild(tr);
-            const emptyMsg = document.querySelector('#gfEmptyGridMsg');
+            const emptyMsg = document.querySelector('#gfEmptyGridMsg, #emptyMsg');
             if (emptyMsg) emptyMsg.style.display = 'none';
           }
           await this.sleep(600);
