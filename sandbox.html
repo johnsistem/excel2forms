@@ -1,112 +1,166 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Web Form - Excel2Forms</title>
+<title>Demo - Formulario Complejo</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Segoe UI',Arial,sans-serif; background: #f5f5f5; padding: 24px; color: #333; }
-  .container { max-width: 800px; margin: 0 auto; }
-  h1 { font-size: 20px; font-weight: 500; color: #1a237e; margin-bottom: 4px; }
+  body { font-family: 'Segoe UI',Arial,sans-serif; background: #f0f2f5; padding: 24px; color: #333; }
+  .container { max-width: 900px; margin: 0 auto; }
+  h1 { font-size: 22px; font-weight: 600; color: #1a237e; margin-bottom: 4px; }
   .subtitle { font-size: 13px; color: #666; margin-bottom: 16px; }
-  .card { background: #fff; border-radius: 8px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,.08); margin-bottom: 16px; }
-  .card-title { font-size: 14px; font-weight: 600; color: #1a237e; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid #e0e0e0; }
-  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .card { background: #fff; border-radius: 8px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,.08); margin-bottom: 16px; }
+  .card-title { font-size: 15px; font-weight: 600; color: #1a237e; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid #e0e0e0; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
   .field { display: flex; flex-direction: column; gap: 4px; }
+  .field.full { grid-column: 1 / -1; }
   .field label { font-size: 12px; color: #555; font-weight: 500; }
-  .field input, .field select {
+  .field input, .field select, .field textarea {
     padding: 8px 12px; border: 1px solid #c0c0c0; border-radius: 4px;
     font-size: 14px; font-family: inherit; background: #fff; color: #333;
   }
-  .field input:focus, .field select:focus { outline: 2px solid #1976d2; border-color: transparent; }
-  .btn {
-    padding: 8px 20px; border: none; border-radius: 4px; cursor: pointer;
-    font-size: 13px; font-weight: 500; font-family: inherit;
-  }
+  .field textarea { resize: vertical; min-height: 60px; }
+  .field input:focus, .field select:focus, .field textarea:focus { outline: 2px solid #1976d2; border-color: transparent; }
+  .btn { padding: 8px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 500; font-family: inherit; }
   .btn-primary { background: #1976d2; color: #fff; }
   .btn-primary:hover { background: #1565c0; }
-  .btn-primary:disabled { background: #b0bec5; color: #fff; cursor: not-allowed; }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th { background: #f5f5f5; padding: 10px 8px; border: 1px solid #e0e0e0; font-weight: 600; font-size: 12px; text-align: left; }
-  td { border: 1px solid #e0e0e0; padding: 8px; }
-  .log-bar { background: #1e293b; border-radius: 6px; padding: 8px 12px; color: #94a3b8; font-family: 'Consolas', monospace; font-size: 11px; margin-top: 12px; max-height: 80px; overflow-y: auto; display: none; }
-  #log { display: flex; flex-wrap: wrap; gap: 4px 12px; }
+  .btn-primary:disabled { background: #b0bec5; cursor: not-allowed; }
+  .btn-success { background: #2e7d32; color: #fff; }
+  .btn-success:hover { background: #1b5e20; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { background: #f5f5f5; padding: 8px; border: 1px solid #e0e0e0; font-weight: 600; text-align: left; }
+  td { border: 1px solid #e0e0e0; padding: 6px 8px; }
+  .log-bar { background: #1e293b; border-radius: 6px; padding: 8px 12px; color: #94a3b8; font-family: Consolas,monospace; font-size: 11px; margin-top: 12px; max-height: 100px; overflow-y: auto; display: none; }
+  #log { display: flex; flex-wrap: wrap; gap: 2px 12px; }
   #log .ok { color: #4ade80; }
   #log .info { color: #60a5fa; }
+  #log .warn { color: #fbbf24; }
+  .toolbar { display: flex; gap: 8px; margin-bottom: 12px; }
 </style>
 </head>
 <body>
-
 <div class="container">
-  <h1>Excel2Forms</h1>
-  <p class="subtitle">Automate web forms from Excel files.</p>
+  <h1>Demo: Formulario Complejo</h1>
+  <p class="subtitle">Campos: texto, selects, fecha, textarea. Probá la extensión con este formulario.</p>
 
-    <div class="card" style="border:2px solid #f59e0b">
-        <div class="card-title" style="color:#f59e0b">Form</div>
-        <form id="genericTestForm">
-          <div class="grid">
-            <div class="field">
-              <label for="nombre">Name</label>
-              <input type="text" id="nombre" name="nombre" placeholder="Full name">
-            </div>
-            <div class="field">
-              <label for="cedula">ID Number</label>
-              <input type="text" id="cedula" name="cedula" placeholder="ID number">
-            </div>
-            <div class="field">
-              <label for="correo">Email</label>
-              <input type="email" id="correo" name="correo" placeholder="email@example.com">
-            </div>
-            <div class="field">
-              <label for="telefono">Phone</label>
-              <input type="tel" id="telefono" name="telefono" placeholder="+505 8888-8888">
-            </div>
-            <div class="field">
-              <label for="cargo">Position</label>
-              <select id="cargo" name="cargo">
-                <option value="">Select...</option>
-                <option value="docente">Teacher</option>
-                <option value="director">Principal</option>
-                <option value="administrativo">Administrative</option>
-                <option value="tecnico">Technician</option>
-              </select>
-            </div>
-          </div>
-          <div style="margin-top:14px;text-align:center">
-            <button type="submit" class="btn btn-primary" id="btnGuardarGeneric" style="background:#f59e0b;color:#000;font-weight:700" disabled>Save</button>
-          </div>
-        </form>
+  <div class="toolbar">
+    <button class="btn btn-success" id="btnGenerarExcel">📥 Descargar Excel de Ejemplo</button>
+  </div>
 
-        <div style="margin-top:16px">
-          <h3 style="font-size:13px;margin-bottom:8px;color:#92400e">Saved Records</h3>
-          <table>
-            <thead>
-              <tr>
-                <th style="padding:6px 8px;border-bottom:2px solid #f59e0b;background:#fefce8;color:#92400e">#</th>
-                <th style="padding:6px 8px;border-bottom:2px solid #f59e0b;background:#fefce8;color:#92400e">Name</th>
-                <th style="padding:6px 8px;border-bottom:2px solid #f59e0b;background:#fefce8;color:#92400e">ID Number</th>
-                <th style="padding:6px 8px;border-bottom:2px solid #f59e0b;background:#fefce8;color:#92400e">Email</th>
-                <th style="padding:6px 8px;border-bottom:2px solid #f59e0b;background:#fefce8;color:#92400e">Phone</th>
-                <th style="padding:6px 8px;border-bottom:2px solid #f59e0b;background:#fefce8;color:#92400e">Position</th>
-              </tr>
-            </thead>
-            <tbody id="gfGridBody"></tbody>
-          </table>
-          <div id="gfEmptyGridMsg" style="text-align:center;padding:24px;color:#999;font-size:13px">
-            No saved records yet.
-          </div>
+  <div class="card" style="border:2px solid #f59e0b">
+    <div class="card-title" style="color:#f59e0b">Registro de Empleados</div>
+    <form id="mainForm">
+      <div class="grid">
+        <div class="field">
+          <label for="nombre">Nombre Completo</label>
+          <input type="text" id="nombre" name="nombre" placeholder="Nombre completo">
+        </div>
+        <div class="field">
+          <label for="cedula">Cédula</label>
+          <input type="text" id="cedula" name="cedula" placeholder="000-000000-0000X">
+        </div>
+        <div class="field">
+          <label for="fecha_nac">Fecha de Nacimiento</label>
+          <input type="date" id="fecha_nac" name="fecha_nac">
+        </div>
+        <div class="field">
+          <label for="genero">Género</label>
+          <select id="genero" name="genero">
+            <option value="">Seleccione...</option>
+            <option value="Masculino">Masculino</option>
+            <option value="Femenino">Femenino</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="estado_civil">Estado Civil</label>
+          <select id="estado_civil" name="estado_civil">
+            <option value="">Seleccione...</option>
+            <option value="Soltero/a">Soltero/a</option>
+            <option value="Casado/a">Casado/a</option>
+            <option value="Divorciado/a">Divorciado/a</option>
+            <option value="Viudo/a">Viudo/a</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="nacionalidad">Nacionalidad</label>
+          <input type="text" id="nacionalidad" name="nacionalidad" placeholder="Nicaragüense">
+        </div>
+        <div class="field">
+          <label for="telefono">Teléfono</label>
+          <input type="tel" id="telefono" name="telefono" placeholder="+505 8888-8888">
+        </div>
+        <div class="field">
+          <label for="correo">Correo Electrónico</label>
+          <input type="email" id="correo" name="correo" placeholder="correo@ejemplo.com">
+        </div>
+        <div class="field full">
+          <label for="direccion">Dirección</label>
+          <textarea id="direccion" name="direccion" placeholder="Dirección completa"></textarea>
+        </div>
+        <div class="field">
+          <label for="departamento">Departamento</label>
+          <select id="departamento" name="departamento">
+            <option value="">Seleccione...</option>
+            <option value="Administración">Administración</option>
+            <option value="Ventas">Ventas</option>
+            <option value="TI">Tecnología</option>
+            <option value="RRHH">Recursos Humanos</option>
+            <option value="Operaciones">Operaciones</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="cargo">Cargo</label>
+          <select id="cargo" name="cargo">
+            <option value="">Seleccione...</option>
+            <option value="Analista">Analista</option>
+            <option value="Coordinador">Coordinador</option>
+            <option value="Supervisor">Supervisor</option>
+            <option value="Gerente">Gerente</option>
+            <option value="Asistente">Asistente</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="salario">Salario Base ($)</label>
+          <input type="number" id="salario" name="salario" placeholder="0.00" step="0.01">
+        </div>
+        <div class="field">
+          <label for="fecha_ingreso">Fecha de Ingreso</label>
+          <input type="date" id="fecha_ingreso" name="fecha_ingreso">
         </div>
       </div>
+      <div style="margin-top:16px;text-align:center">
+        <button type="submit" class="btn btn-primary" id="btnGuardar" disabled>💾 Guardar</button>
+      </div>
+    </form>
 
-    <div class="log-bar" id="logBar">
-      <div id="log"></div>
+    <div style="margin-top:16px">
+      <h3 style="font-size:14px;margin-bottom:8px;color:#92400e">Registros Guardados</h3>
+      <div style="overflow-x:auto">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th><th>Nombre</th><th>Cédula</th><th>Nacimiento</th><th>Género</th>
+              <th>Estado Civil</th><th>Teléfono</th><th>Correo</th><th>Departamento</th><th>Cargo</th>
+            </tr>
+          </thead>
+          <tbody id="gridBody"></tbody>
+        </table>
+      </div>
+      <div id="emptyMsg" style="text-align:center;padding:24px;color:#999;font-size:13px">
+        Sin registros guardados aún.
+      </div>
     </div>
+  </div>
+
+  <div class="log-bar" id="logBar">
+    <div id="log"></div>
   </div>
 </div>
 
 <script>
-let gfRecords = [];
-let gfCounter = 0;
+let records = [];
+let counter = 0;
+const fields = ['nombre','cedula','fecha_nac','genero','estado_civil','nacionalidad','telefono','correo','direccion','departamento','cargo','salario','fecha_ingreso'];
 
 function log(type, msg) {
   const el = document.getElementById('log');
@@ -114,57 +168,79 @@ function log(type, msg) {
   if (bar) bar.style.display = 'block';
   const d = document.createElement('div');
   d.className = type;
-  d.textContent = `${msg}`;
+  d.textContent = msg;
   el.appendChild(d);
 }
 
-function renderGenericGrid() {
-  const tbody = document.getElementById('gfGridBody');
-  const empty = document.getElementById('gfEmptyGridMsg');
+function renderGrid() {
+  const tbody = document.getElementById('gridBody');
+  const empty = document.getElementById('emptyMsg');
   tbody.innerHTML = '';
-  if (gfRecords.length === 0) { empty.style.display = 'block'; return; }
+  if (records.length === 0) { empty.style.display = 'block'; return; }
   empty.style.display = 'none';
-  gfRecords.forEach(r => {
+  records.forEach(r => {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td style="padding:6px 8px;border-bottom:1px solid #e0e0e0">${r._id}</td>
-      <td style="padding:6px 8px;border-bottom:1px solid #e0e0e0">${r.nombre}</td>
-      <td style="padding:6px 8px;border-bottom:1px solid #e0e0e0">${r.cedula}</td>
-      <td style="padding:6px 8px;border-bottom:1px solid #e0e0e0">${r.correo}</td>
-      <td style="padding:6px 8px;border-bottom:1px solid #e0e0e0">${r.telefono}</td>
-      <td style="padding:6px 8px;border-bottom:1px solid #e0e0e0">${r.cargo}</td>`;
+    tr.innerHTML = `<td>${r._id}</td>
+      <td>${r.nombre}</td><td>${r.cedula}</td><td>${r.fecha_nac||'-'}</td>
+      <td>${r.genero||'-'}</td><td>${r.estado_civil||'-'}</td>
+      <td>${r.telefono||'-'}</td><td>${r.correo||'-'}</td>
+      <td>${r.departamento||'-'}</td><td>${r.cargo||'-'}</td>`;
     tbody.appendChild(tr);
   });
 }
 
-function gfHandleSubmit() {
+function handleSubmit() {
   const data = {};
-  ['nombre','cedula','correo','telefono','cargo'].forEach(id => { data[id] = document.getElementById(id).value; });
-  if (!data.nombre && !data.cedula) { log('⚠ Empty fields — not saved'); return false; }
-  gfCounter++;
-  gfRecords.push({ ...data, _id: gfCounter });
-  renderGenericGrid();
-  log(`✓ #${gfCounter} Saved: ${data.nombre}`);
-  ['nombre','cedula','correo','telefono','cargo'].forEach(id => { document.getElementById(id).value = ''; });
-  document.getElementById('btnGuardarGeneric').disabled = true;
+  fields.forEach(id => { data[id] = document.getElementById(id).value; });
+  if (!data.nombre) { log('warn', '⚠ Campos obligatorios vacíos'); return false; }
+  counter++;
+  records.push({ ...data, _id: counter });
+  renderGrid();
+  log('ok', `✓ #${counter} ${data.nombre} guardado`);
+  fields.forEach(id => { document.getElementById(id).value = ''; });
+  document.getElementById('btnGuardar').disabled = true;
   return true;
 }
-window.__gfSaveCurrent = gfHandleSubmit;
+window.__gfSaveCurrent = handleSubmit;
 
-document.getElementById('genericTestForm').addEventListener('submit', function(e) {
+document.getElementById('mainForm').addEventListener('submit', function(e) {
   e.preventDefault();
-  gfHandleSubmit();
+  handleSubmit();
 });
 
-document.querySelectorAll('#genericTestForm input, #genericTestForm select').forEach(el => {
-  el.addEventListener('input', toggleGenericGuardar);
-  el.addEventListener('change', toggleGenericGuardar);
+document.querySelectorAll('#mainForm input, #mainForm select, #mainForm textarea').forEach(el => {
+  el.addEventListener('input', toggleGuardar);
+  el.addEventListener('change', toggleGuardar);
 });
-function toggleGenericGuardar() {
-  const hasData = ['nombre','cedula'].some(id => document.getElementById(id).value.trim());
-  document.getElementById('btnGuardarGeneric').disabled = !hasData;
+function toggleGuardar() {
+  document.getElementById('btnGuardar').disabled = !document.getElementById('nombre').value.trim();
 }
 
-// Initial state ready
+// Generate sample Excel
+document.getElementById('btnGenerarExcel').addEventListener('click', function() {
+  const sampleData = [
+    ['Nombre','Cédula','Fecha de Nacimiento','Género','Estado Civil','Nacionalidad','Teléfono','Correo','Dirección','Departamento','Cargo','Salario','Fecha de Ingreso'],
+    ['María López','001-123456-7890M','1990-05-15','Femenino','Casado/a','Nicaragüense','+505 8888-1001','maria@ejemplo.com','Del Parque Central 1c al Sur, Managua','Administración','Gerente','2500.00','2023-01-15'],
+    ['Carlos Mendoza','001-234567-8901N','1985-08-22','Masculino','Soltero/a','Nicaragüense','+505 8888-1002','carlos@ejemplo.com','Bo. Martha Quezada, León','TI','Analista','1800.00','2024-03-01'],
+    ['Ana García','001-345678-9012O','1992-11-30','Femenino','Soltero/a','Nicaragüense','+505 8888-1003','ana@ejemplo.com','Residencial Villa Sol, Granada','Ventas','Coordinador','2000.00','2024-06-10'],
+    ['Pedro Ruiz','001-456789-0123P','1988-03-10','Masculino','Casado/a','Nicaragüense','+505 8888-1004','pedro@ejemplo.com','Calle Real, Masaya','Operaciones','Supervisor','1900.00','2023-09-20'],
+    ['Sofía Torres','001-567890-1234Q','1995-07-18','Femenino','Soltero/a','Nicaragüense','+505 8888-1005','sofia@ejemplo.com','Bo. San Luis, Estelí','RRHH','Asistente','1500.00','2025-02-01'],
+    ['Luis Campos','001-678901-2345R','1982-01-25','Masculino','Divorciado/a','Nicaragüense','+505 8888-1006','luis@ejemplo.com','Costado Sur del Hospital, Chinandega','TI','Gerente','2800.00','2022-05-12'],
+    ['Carmen Vega','001-789012-3456S','1993-09-14','Femenino','Casado/a','Nicaragüense','+505 8888-1007','carmen@ejemplo.com','Bo. El Calvario, Matagalpa','Administración','Analista','1700.00','2024-11-01'],
+    ['José Martínez','001-890123-4567T','1987-06-07','Masculino','Soltero/a','Nicaragüense','+505 8888-1008','jose@ejemplo.com','Residencial Las Colinas, Managua','Ventas','Ejecutivo','1600.00','2025-01-15'],
+    ['Marta Flores','001-901234-5678U','1991-12-28','Femenino','Viudo/a','Nicaragüense','+505 8888-1009','marta@ejemplo.com','Bo. Santa Rosa, Rivas','Operaciones','Asistente','1400.00','2024-08-20'],
+    ['Roberto Silva','001-012345-6789V','1984-04-03','Masculino','Casado/a','Nicaragüense','+505 8888-1010','roberto@ejemplo.com','Calle Central, Jinotega','RRHH','Coordinador','2100.00','2023-04-01']
+  ];
+
+  const csv = sampleData.map(row => row.join(',')).join('\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'empleados_ejemplo.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  log('info', '📥 empleados_ejemplo.csv descargado');
+});
 </script>
 </body>
 </html>
