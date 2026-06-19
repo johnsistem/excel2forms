@@ -1,5 +1,5 @@
 const SECRET = 'Digitar2024!MachineLock';
-const MAX_TRIAL_STUDENTS = 500;
+const MAX_TRIAL_STUDENTS = 50;
 
 async function getTrialUsed() {
   const result = await chrome.storage.local.get('trialUsed');
@@ -96,7 +96,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       (async () => {
         const tab = await findTargetTab();
         if (!tab) {
-          sendResponse({ error: 'No se encontró la página del MINED ni el sandbox.' });
+          sendResponse({ error: 'No se encontró la página del formulario.' });
           return;
         }
         const result = await chrome.storage.session.get('injectTask');

@@ -15,7 +15,7 @@
       </nav>
     </header>
 
-    <!-- MINED tab-scanner removed -->
+    <!-- Generic form tab -->
 
     <div id="trialInfo" class="trial-info hidden"></div>
     <div id="licenseBlock" class="license-block hidden">
@@ -146,18 +146,19 @@
     </section>
 
     <section id="tab-settings" class="tab-content hidden">
-      <div id="licenseActivationSection">
+      <div id="licenseStatus" class="license-status" style="margin-bottom:12px"></div>
+
+      <div id="licenseInputSection">
         <div class="settings-group">
           <label data-i18n="licenseActivate">Activar Licencia</label>
           <input type="text" id="licenseInput" placeholder="YYYY-MM-DD:&lt;hash&gt;" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;background:#111827;color:#e5e7eb;font-family:monospace">
-          <button id="activateBtn" class="btn primary" style="margin-top:4px;width:100%" data-i18n="activate">▶ Activar</button>
-          <div id="licenseStatus" class="license-status"></div>
+          <button id="activateBtn" class="btn primary" style="margin-top:4px;width:100%" data-i18n="activate" disabled>▶ Activar</button>
         </div>
+      </div>
 
-        <div class="settings-group" style="text-align:center;padding-top:8px;border-top:1px solid #374151">
-          <p style="font-size:12px;color:#9ca3af;margin-bottom:6px" data-i18n="licenseInfoText">¿Sin licencia o tenés dudas?</p>
-          <a id="licenseInfoLink" href="#" target="_blank" style="display:inline-block;background:#25D366;color:#fff;text-decoration:none;padding:8px 20px;border-radius:6px;font-weight:600;font-size:13px">💬 Contactar</a>
-        </div>
+      <div class="settings-group" style="text-align:center;padding-top:8px;border-top:1px solid #374151">
+        <p style="font-size:12px;color:#9ca3af;margin-bottom:6px" data-i18n="licenseInfoText">¿Sin licencia o tenés dudas?</p>
+        <a id="licenseInfoLink" href="#" target="_blank" style="display:inline-block;background:#25D366;color:#fff;text-decoration:none;padding:8px 20px;border-radius:6px;font-weight:600;font-size:13px">💬 Contactar</a>
       </div>
 
       <div class="settings-group">

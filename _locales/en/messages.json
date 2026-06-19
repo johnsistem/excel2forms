@@ -2,17 +2,8 @@
   "appName": { "message": "Excel2Forms - Web Form Automation" },
   "appDesc": { "message": "Automate web form filling from Excel files." },
 
-  "tabScan": { "message": "Upload Records" },
   "tabGeneric": { "message": "Generic Form" },
   "tabSettings": { "message": "Settings" },
-  "minedMode": { "message": "Fill Mode" },
-  "minedModeSemi": { "message": "Semi-automatic (subject by subject)" },
-  "minedModeStudent": { "message": "Per Student (fills all and stops)" },
-  "minedModeAuto": { "message": "Automatic (all at once)" },
-  "minedSpeed": { "message": "Fill Speed" },
-  "minedSpeedFast": { "message": "Fast (5s per record)" },
-  "minedSpeedNormal": { "message": "Normal (10s per record)" },
-  "minedSpeedSlow": { "message": "Slow (15s per record)" },
   "machineID": { "message": "Machine ID" },
   "machineIDDesc": { "message": "This ID identifies your PC. Send it to generate your license." },
   "copyID": { "message": "Copy ID" },
@@ -106,7 +97,7 @@
   "licenseInfoText": { "message": "No license or have questions?" },
 
   "trialRemaining": { "message": "Free trial: {0} records remaining" },
-  "trialExhausted": { "message": "Trial limit reached (500 trial records). Activate a license in Settings." },
+  "trialExhausted": { "message": "Trial limit reached (50 trial records). Activate a license in Settings." },
   "trialInsufficient": { "message": "Only {0} trial records remaining. Load a smaller file ({1} required)." },
 
   "language": { "message": "Language" },

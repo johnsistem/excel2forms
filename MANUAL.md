@@ -7,7 +7,7 @@
 4. La extensión aparece como "Digitar Asistente"
 
 ## Prueba gratuita (500 registros)
-- Sin licencia, se pueden procesar hasta **500 registros en total**
+- Sin licencia, se pueden procesar hasta **50 registros en total**
 - El contador descuenta al hacer click en **Ejecutar**
 - Se muestra un mensaje con los registros restantes
 - Al llegar a 0, se bloquea y pide licencia
@@ -17,8 +17,8 @@
 ## Licencias
 ### Generar licencia (solo el desarrollador)
 ```bash
-# 1 año (default)
-node tools/generar-licencia.js
+# 📌 1 año (lo más común para clientes)
+node tools/generar-licencia.js 1y
 
 # 6 meses
 node tools/generar-licencia.js 6m
@@ -27,7 +27,13 @@ node tools/generar-licencia.js 6m
 node tools/generar-licencia.js 3m
 
 # Fecha exacta
-node tools/generar-licencia.js 2026-12-31
+node tools/generar-licencia.js 2027-12-31
+```
+
+Ejemplo de output:
+```
+Vencimiento:    2027-06-19
+Token:          2027-06-19:a1b2c3d4e5f6...
 ```
 
 El token generado es **universal** (no está atado a un ID de máquina). Se envía al cliente para que lo pegue en la extensión → Configuración → Activar Licencia.

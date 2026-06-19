@@ -2,17 +2,8 @@
   "appName": { "message": "Excel2Forms - Web Form Automation" },
   "appDesc": { "message": "Automatiza el llenado de formularios web desde archivos Excel." },
 
-  "tabScan": { "message": "Cargar Acta" },
   "tabGeneric": { "message": "Formulario Genérico" },
   "tabSettings": { "message": "Configuración" },
-  "minedMode": { "message": "Modo de llenado" },
-  "minedModeSemi": { "message": "Semi-automático (materia por materia)" },
-  "minedModeStudent": { "message": "Por Estudiante (llena todo y se detiene)" },
-  "minedModeAuto": { "message": "Automático (todo de una)" },
-  "minedSpeed": { "message": "Velocidad de llenado" },
-  "minedSpeedFast": { "message": "Rápido (5s por registro)" },
-  "minedSpeedNormal": { "message": "Normal (10s por registro)" },
-  "minedSpeedSlow": { "message": "Lento (15s por registro)" },
   "machineID": { "message": "ID de Máquina" },
   "machineIDDesc": { "message": "Este ID identifica tu PC. Enviámelo para generar tu licencia." },
   "copyID": { "message": "Copiar ID" },
@@ -81,7 +72,7 @@
   "licenseInfoText": { "message": "¿Sin licencia o tenés dudas?" },
 
   "trialRemaining": { "message": "Prueba gratuita: {0} registros restantes" },
-  "trialExhausted": { "message": "Límite de prueba alcanzado (500 registros de prueba). Activá una licencia en Configuración." },
+  "trialExhausted": { "message": "Límite de prueba alcanzado (50 registros de prueba). Activá una licencia en Configuración." },
   "trialInsufficient": { "message": "Solo te quedan {0} registros de prueba. Cargá un archivo más pequeño ({1} requeridos)." },
 
   "language": { "message": "Idioma" },

@@ -50,6 +50,12 @@ document.addEventListener('DOMContentLoaded', async function() {
   document.getElementById('confirmBtn')?.addEventListener('click', confirmData);
   document.getElementById('clearBtn')?.addEventListener('click', clearData);
   document.getElementById('activateBtn')?.addEventListener('click', activateLicense);
+  const licInput = document.getElementById('licenseInput');
+  if (licInput) {
+    licInput.addEventListener('input', () => {
+      document.getElementById('activateBtn').disabled = !licInput.value.trim();
+    });
+  }
   document.getElementById('remapBtn')?.addEventListener('click', applyRemap);
   document.getElementById('copyMachineIDBtn')?.addEventListener('click', copyMachineID);
   loadMachineID();
@@ -80,7 +86,6 @@ function checkLicenseAccess() {
   chrome.runtime.sendMessage({ type: 'CHECK_LICENSE' }, res => {
     if (res?.valid) {
       document.getElementById('licenseBlock')?.classList.add('hidden');
-      document.getElementById('licenseActivationSection')?.classList.add('hidden');
       document.getElementById('trialInfo')?.classList.add('hidden');
       document.getElementById('tab-generic')?.classList.remove('hidden');
       initUpload();
@@ -88,7 +93,6 @@ function checkLicenseAccess() {
       chrome.runtime.sendMessage({ type: 'CHECK_TRIAL' }, trial => {
         if (trial.remaining > 0) {
           document.getElementById('licenseBlock')?.classList.add('hidden');
-          document.getElementById('licenseActivationSection')?.classList.remove('hidden');
           document.getElementById('tab-generic')?.classList.remove('hidden');
           const trialInfo = document.getElementById('trialInfo');
           if (trialInfo) {
@@ -98,7 +102,6 @@ function checkLicenseAccess() {
           initUpload();
         } else {
           document.getElementById('licenseBlock')?.classList.remove('hidden');
-          document.getElementById('licenseActivationSection')?.classList.remove('hidden');
           document.getElementById('tab-generic')?.classList.add('hidden');
         }
       });
@@ -470,7 +473,7 @@ function copyMachineID() {
 
 function checkLicenseStatus() {
   chrome.runtime.sendMessage({ type: 'CHECK_LICENSE' }, res => {
-    const section = document.getElementById('licenseActivationSection');
+    const section = document.getElementById('licenseInputSection');
     if (res?.valid) {
       const expiryText = res.expiry ? t('licenseExpiry', res.expiry) : '';
       setLicenseStatus(t('licenseActive') + expiryText, 'active');
@@ -487,15 +490,15 @@ function checkLicenseStatus() {
 
 function activateLicense() {
   const token = document.getElementById('licenseInput').value.trim();
-  if (!token) { setLicenseStatus(t('licenseEnterToken'), 'inactive'); return; }
+  if (!token) return;
   setLicenseStatus(t('licenseValidating'), 'info');
   chrome.runtime.sendMessage({ type: 'VALIDATE_LICENSE', payload: { token } }, res => {
     if (res?.valid) {
       const expiryText = res.expiry ? t('licenseExpiry', res.expiry) : '';
       setLicenseStatus(t('licenseActive') + expiryText, 'active');
       document.getElementById('licenseInput').value = '';
-      const section = document.getElementById('licenseActivationSection');
-      if (section) section.classList.add('hidden');
+      document.getElementById('activateBtn').disabled = true;
+      document.getElementById('licenseInputSection')?.classList.add('hidden');
       checkLicenseAccess();
     } else if (res?.expired) {
       setLicenseStatus(t('licenseTokenExpired'), 'inactive');
