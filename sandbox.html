@@ -157,6 +157,7 @@
   </div>
 </div>
 
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <script>
 let records = [];
 let counter = 0;
@@ -232,14 +233,17 @@ document.getElementById('btnGenerarExcel').addEventListener('click', function() 
     ['Roberto Silva','001-012345-6789V','1984-04-03','Masculino','Casado/a','Nicaragüense','+505 8888-1010','roberto@ejemplo.com','Calle Central, Jinotega','RRHH','Coordinador','2100.00','2023-04-01']
   ];
 
-  const csv = sampleData.map(row => row.join(',')).join('\n');
-  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const ws = XLSX.utils.aoa_to_sheet(sampleData);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Empleados');
+  const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+  const blob = new Blob([wbout], { type: 'application/octet-stream' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'empleados_ejemplo.csv';
+  a.download = 'empleados_ejemplo.xlsx';
   a.click();
   URL.revokeObjectURL(a.href);
-  log('info', '📥 empleados_ejemplo.csv descargado');
+  log('info', '📥 empleados_ejemplo.xlsx descargado');
 });
 </script>
 </body>
