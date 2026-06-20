@@ -41,10 +41,28 @@ if (!window.location.search.includes('mode=tab')) {
   window.close();
 }
 
+function initTheme() {
+  const saved = localStorage.getItem('excel2forms-theme') || 'dark';
+  applyTheme(saved);
+}
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  const btn = document.getElementById('themeToggle');
+  if (btn) btn.textContent = theme === 'light' ? '☀️' : '🌙';
+  localStorage.setItem('excel2forms-theme', theme);
+}
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme') || 'dark';
+  applyTheme(current === 'dark' ? 'light' : 'dark');
+}
+
 document.addEventListener('DOMContentLoaded', async function() {
   const stored = await new Promise(r => chrome.storage.local.get('locale', res => r(res.locale || 'es')));
   await loadTranslations(stored);
   applyTranslations();
+  initTheme();
   initTabs();
   checkLicenseAccess();
   document.getElementById('confirmBtn')?.addEventListener('click', confirmData);
@@ -56,6 +74,7 @@ document.addEventListener('DOMContentLoaded', async function() {
       document.getElementById('activateBtn').disabled = !licInput.value.trim();
     });
   }
+  document.getElementById('themeToggle')?.addEventListener('click', toggleTheme);
   document.getElementById('remapBtn')?.addEventListener('click', applyRemap);
   document.getElementById('copyMachineIDBtn')?.addEventListener('click', copyMachineID);
   loadMachineID();
@@ -613,7 +632,7 @@ function renderGenericPreview(rows, cols) {
   rows.slice(0, 15).forEach((r, i) => {
     const tr = document.createElement('tr');
     const vals = cols.map(c => (r[c] || '').slice(0, 25)).join(' | ');
-    tr.innerHTML = `<td style="padding:4px 8px;border-bottom:1px solid #374151;color:#9ca3af;font-size:11px">${i + 1}</td><td style="padding:4px 8px;border-bottom:1px solid #374151;color:#d1d5db;font-size:11px">${escHtml(vals)}</td>`;
+    tr.innerHTML = `<td style="padding:4px 8px;border-bottom:1px solid var(--border);color:var(--text-secondary);font-size:11px">${i + 1}</td><td style="padding:4px 8px;border-bottom:1px solid var(--border);color:var(--text-light);font-size:11px">${escHtml(vals)}</td>`;
     tbody.appendChild(tr);
   });
 }
@@ -645,8 +664,8 @@ function renderDetectedFields(fields) {
   list.innerHTML = '';
   fields.forEach(f => {
     const div = document.createElement('div');
-    div.style.cssText = 'display:flex;align-items:center;gap:6px;padding:4px 6px;margin-bottom:3px;background:#1f2937;border-radius:4px;font-size:11px';
-    div.innerHTML = `<code style="color:#f59e0b;font-size:11px">${escHtml(f.selector)}</code> <span style="color:#d1d5db;flex:1">${escHtml(f.label)}</span> <span style="color:#6b7280;font-size:10px">${f.tag}${f.type ? `[${f.type}]` : ''}</span>`;
+    div.style.cssText = 'display:flex;align-items:center;gap:6px;padding:4px 6px;margin-bottom:3px;background:var(--surface);border-radius:4px;font-size:11px';
+    div.innerHTML = `<code style="color:var(--warning);font-size:11px">${escHtml(f.selector)}</code> <span style="color:var(--text-light);flex:1">${escHtml(f.label)}</span> <span style="color:var(--text-muted);font-size:10px">${f.tag}${f.type ? `[${f.type}]` : ''}</span>`;
     list.appendChild(div);
   });
   document.getElementById('gfFieldsSection').classList.remove('hidden');
@@ -658,8 +677,8 @@ function renderDetectedButtons(buttons) {
   list.innerHTML = '';
   buttons.forEach(b => {
     const div = document.createElement('div');
-    div.style.cssText = 'display:flex;align-items:center;gap:6px;padding:4px 6px;margin-bottom:3px;background:#1f2937;border-radius:4px;font-size:11px';
-    div.innerHTML = `<code style="color:#34d399;font-size:11px">${b.selector}</code> <span style="color:#d1d5db;flex:1">${escHtml(b.label)}</span>`;
+    div.style.cssText = 'display:flex;align-items:center;gap:6px;padding:4px 6px;margin-bottom:3px;background:var(--surface);border-radius:4px;font-size:11px';
+    div.innerHTML = `<code style="color:var(--success);font-size:11px">${b.selector}</code> <span style="color:var(--text-light);flex:1">${escHtml(b.label)}</span>`;
     div.onclick = () => {
       document.getElementById('gfSubmitSelector').value = b.selector;
       gfShowStatus(t('genericButtonSelected', b.label), 'info');
@@ -674,24 +693,24 @@ function renderMappingUI() {
   container.innerHTML = '';
   document.getElementById('gfMappingSection').classList.remove('hidden');
   if (GF.excelCols.length === 0) {
-    container.innerHTML = '<p style="color:#9ca3af;font-size:12px">Cargá un Excel primero para ver las columnas disponibles.</p>';
+    container.innerHTML = '<p style="color:var(--text-secondary);font-size:12px">Cargá un Excel primero para ver las columnas disponibles.</p>';
     return;
   }
   if (GF.detectedFields.length === 0) {
-    container.innerHTML = '<p style="color:#9ca3af;font-size:12px">Primero detectá los campos de la página.</p>';
+    container.innerHTML = '<p style="color:var(--text-secondary);font-size:12px">Primero detectá los campos de la página.</p>';
     return;
   }
   GF.excelCols.forEach(col => {
     const row = document.createElement('div');
     row.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:4px';
     const label = document.createElement('span');
-    label.style.cssText = 'min-width:80px;font-weight:600;color:#d1d5db;background:#374151;padding:2px 6px;border-radius:3px;text-align:center;font-size:11px';
+    label.style.cssText = 'min-width:80px;font-weight:600;color:var(--text-light);background:var(--border);padding:2px 6px;border-radius:3px;text-align:center;font-size:11px';
     label.textContent = col;
     const arrow = document.createElement('span');
-    arrow.style.cssText = 'color:#6b7280;font-size:11px';
+    arrow.style.cssText = 'color:var(--text-muted);font-size:11px';
     arrow.textContent = '→';
     const select = document.createElement('select');
-    select.style.cssText = 'flex:1;padding:3px 6px;border:1px solid #4b5563;border-radius:4px;font-size:11px;background:#111827;color:#e5e7eb';
+    select.style.cssText = 'flex:1;padding:3px 6px;border:1px solid var(--border-2);border-radius:4px;font-size:11px;background:var(--input-bg);color:var(--input-text)';
     select.innerHTML = '<option value="">— Sin mapear —</option>';
     GF.detectedFields.forEach(f => {
       const opt = document.createElement('option');
@@ -753,14 +772,14 @@ function loadGenericConfigs() {
     const container = document.getElementById('gfConfigList');
     container.innerHTML = '';
     if (configs.length === 0) {
-      container.innerHTML = '<p style="color:#9ca3af;font-size:12px">No hay configuraciones guardadas.</p>';
+      container.innerHTML = '<p style="color:var(--text-secondary);font-size:12px">No hay configuraciones guardadas.</p>';
     } else {
       configs.forEach((cfg, i) => {
         const div = document.createElement('div');
-        div.style.cssText = 'display:flex;align-items:center;gap:6px;padding:4px 6px;margin-bottom:3px;background:#1f2937;border-radius:4px';
-        div.innerHTML = `<span style="flex:1;color:#d1d5db;font-size:11px">${escHtml(cfg.name)} (${cfg.fields.length} campos)</span>
-          <button style="background:#3b82f6;color:#fff;border:none;border-radius:3px;padding:2px 8px;cursor:pointer;font-size:10px" data-idx="${i}">Cargar</button>
-          <button style="background:#ef4444;color:#fff;border:none;border-radius:3px;padding:2px 8px;cursor:pointer;font-size:10px" data-idx="${i}">Eliminar</button>`;
+        div.style.cssText = 'display:flex;align-items:center;gap:6px;padding:4px 6px;margin-bottom:3px;background:var(--surface);border-radius:4px';
+        div.innerHTML = `<span style="flex:1;color:var(--text-light);font-size:11px">${escHtml(cfg.name)} (${cfg.fields.length} campos)</span>
+          <button style="background:var(--primary);color:#fff;border:none;border-radius:3px;padding:2px 8px;cursor:pointer;font-size:10px" data-idx="${i}">Cargar</button>
+          <button style="background:var(--error);color:#fff;border:none;border-radius:3px;padding:2px 8px;cursor:pointer;font-size:10px" data-idx="${i}">Eliminar</button>`;
         div.querySelectorAll('button')[0].onclick = () => applyGenericConfig(cfg);
         div.querySelectorAll('button')[1].onclick = () => deleteGenericConfig(i);
         container.appendChild(div);
