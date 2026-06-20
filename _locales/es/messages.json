@@ -4,9 +4,6 @@
 
   "tabGeneric": { "message": "Formulario Genérico" },
   "tabSettings": { "message": "Configuración" },
-  "machineID": { "message": "ID de Máquina" },
-  "machineIDDesc": { "message": "Este ID identifica tu PC. Enviámelo para generar tu licencia." },
-  "copyID": { "message": "Copiar ID" },
   "licenseKey": { "message": "Clave de Licencia" },
   "licensePlaceholder": { "message": "Pegá la licencia aquí" },
   "activate": { "message": "Activar" },
@@ -68,7 +65,6 @@
   "licenseRequired": { "message": "Licencia Requerida" },
   "licenseBlockText": { "message": "Esta extensión requiere una licencia válida para funcionar. Ingresá tu clave de licencia en Configuración." },
   "goToSettings": { "message": "Ir a Configuración" },
-  "machineIDHint": { "message": "Este ID identifica tu PC. Enviáselo al desarrollador para generar tu licencia." },
   "licenseInfoText": { "message": "¿Sin licencia o tenés dudas?" },
 
   "trialRemaining": { "message": "Prueba gratuita: {0} registros restantes" },
