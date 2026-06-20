@@ -45,22 +45,12 @@ async function validateLicense(token) {
 }
 
 async function findCurrentTab() {
-  const tabs = await chrome.tabs.query({});
-  const normal = tabs.filter(t => t.status === 'complete' && t.url && !t.url.startsWith('chrome') && !t.url.startsWith('about:') && !t.url.startsWith('edge:'));
-  return normal.find(t => t.active && t.highlighted) || normal[0] || null;
-}
-
-async function findTargetTab() {
-  const patterns = [
-    '*://serviciosenlinea.mined.gob.ni/*',
-    'http://localhost/*',
-    'http://127.0.0.1/*'
-  ];
-  for (const url of patterns) {
-    const tabs = await chrome.tabs.query({ url });
-    if (tabs.length > 0) return tabs[0];
-  }
-  return null;
+  const all = await chrome.tabs.query({});
+  const extUrl = chrome.runtime.getURL('');
+  const normal = all.filter(t =>
+    t.url && t.url.startsWith('http') && !t.url.startsWith(extUrl)
+  );
+  return normal.find(t => t.active) || normal.find(t => t.highlighted) || normal[0] || null;
 }
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -90,20 +80,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     case 'USE_TRIAL':
       tryUseTrial(message.payload.count).then(result => sendResponse(result));
-      return true;
-
-    case 'INJECT_START':
-      (async () => {
-        const tab = await findTargetTab();
-        if (!tab) {
-          sendResponse({ error: 'No se encontró la página del formulario.' });
-          return;
-        }
-        const result = await chrome.storage.session.get('injectTask');
-        const injectTask = result.injectTask || null;
-        await chrome.tabs.sendMessage(tab.id, { type: 'INJECT_START', payload: injectTask });
-        sendResponse({ ok: true });
-      })();
       return true;
 
     case 'DETECT_FIELDS':

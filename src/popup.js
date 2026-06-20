@@ -41,14 +41,30 @@ if (!window.location.search.includes('mode=tab')) {
   window.close();
 }
 
+function initTheme() {
+  const saved = localStorage.getItem('excel2forms-theme') || 'dark';
+  applyTheme(saved);
+}
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  const btn = document.getElementById('themeToggle');
+  if (btn) btn.textContent = theme === 'light' ? '☀️' : '🌙';
+  localStorage.setItem('excel2forms-theme', theme);
+}
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme') || 'dark';
+  applyTheme(current === 'dark' ? 'light' : 'dark');
+}
+
 document.addEventListener('DOMContentLoaded', async function() {
   const stored = await new Promise(r => chrome.storage.local.get('locale', res => r(res.locale || 'es')));
   await loadTranslations(stored);
   applyTranslations();
+  initTheme();
   initTabs();
   checkLicenseAccess();
-  document.getElementById('confirmBtn')?.addEventListener('click', confirmData);
-  document.getElementById('clearBtn')?.addEventListener('click', clearData);
   document.getElementById('activateBtn')?.addEventListener('click', activateLicense);
   const licInput = document.getElementById('licenseInput');
   if (licInput) {
@@ -56,12 +72,14 @@ document.addEventListener('DOMContentLoaded', async function() {
       document.getElementById('activateBtn').disabled = !licInput.value.trim();
     });
   }
-  document.getElementById('remapBtn')?.addEventListener('click', applyRemap);
-  document.getElementById('copyMachineIDBtn')?.addEventListener('click', copyMachineID);
-  loadMachineID();
+  document.getElementById('themeToggle')?.addEventListener('click', toggleTheme);
   checkLicenseStatus();
   initGenericTab();
   checkGenericResume();
+
+  chrome.runtime.onMessage.addListener((msg) => {
+    if (msg.type === 'GENERIC_FILL_STOPPED') setGenericRunning(false);
+  });
 
   const link = document.getElementById('licenseInfoLink');
   if (link) link.href = 'https://nocodeapps.carrd.co/';
@@ -80,15 +98,12 @@ document.addEventListener('DOMContentLoaded', async function() {
   }
 });
 
-const STATE = { parsedData: null, detectedCols: [], rawRows: null, rawCols: null };
-
 function checkLicenseAccess() {
   chrome.runtime.sendMessage({ type: 'CHECK_LICENSE' }, res => {
     if (res?.valid) {
       document.getElementById('licenseBlock')?.classList.add('hidden');
       document.getElementById('trialInfo')?.classList.add('hidden');
       document.getElementById('tab-generic')?.classList.remove('hidden');
-      initUpload();
     } else {
       chrome.runtime.sendMessage({ type: 'CHECK_TRIAL' }, trial => {
         if (trial.remaining > 0) {
@@ -99,7 +114,6 @@ function checkLicenseAccess() {
             trialInfo.classList.remove('hidden');
             trialInfo.textContent = t('trialRemaining', trial.remaining);
           }
-          initUpload();
         } else {
           document.getElementById('licenseBlock')?.classList.remove('hidden');
           document.getElementById('tab-generic')?.classList.add('hidden');
@@ -120,134 +134,6 @@ function initTabs() {
   });
 }
 
-function initUpload() {
-  const zone = document.getElementById('uploadZone');
-  if (!zone) return;
-  const input = document.getElementById('fileInput');
-  zone.addEventListener('click', () => input.click());
-  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
-  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
-  zone.addEventListener('drop', e => {
-    e.preventDefault(); e.stopPropagation();
-    zone.classList.remove('drag-over');
-    const file = e.dataTransfer.files[0];
-    if (file) processFile(file);
-  });
-  input.addEventListener('change', e => {
-    const file = e.target.files[0];
-    if (file) processFile(file);
-  });
-}
-
-const SUBJECT_MAP = {
-  'EEFF': 'Educación Física y Práctica Deportiva',
-  'EF': 'Educación Física y Práctica Deportiva',
-  'Ed Fisica': 'Educación Física y Práctica Deportiva',
-  'Educacion Fisica': 'Educación Física y Práctica Deportiva',
-  'Leng': 'Lengua y Literatura',
-  'Lengua': 'Lengua y Literatura',
-  'Leng y Lit': 'Lengua y Literatura',
-  'Lengua y Lit': 'Lengua y Literatura',
-  'Ingles': 'Lengua Extranjera (Inglés)',
-  'Inglés': 'Lengua Extranjera (Inglés)',
-  'EAEP': 'Educación para Aprender, Emprender, Prosperar',
-  'AEP': 'Educación para Aprender, Emprender, Prosperar',
-  'EAPEP': 'Educación para Aprender, Emprender, Prosperar',
-  'CCNN': 'Ciencias Naturales',
-  'C Naturales': 'Ciencias Naturales',
-  'CCSS': 'Ciencias Sociales',
-  'C Sociales': 'Ciencias Sociales',
-  'Cs Sociales': 'Ciencias Sociales',
-  'TAC': 'Talleres de Arte y Cultura',
-  'CV': 'Creciendo en Valores',
-  'DDM': 'Derechos y Dignidad de las Mujeres',
-  'VADP': 'VADP',
-  'Mat': 'Matemática',
-  'Mate': 'Matemática',
-  'Bio': 'Biología',
-  'Fis': 'Física',
-  'Fisica': 'Física',
-};
-
-function normalizeName(s) {
-  return s.replace(/\./g, '').replace(/\s+/g, ' ').trim();
-}
-
-function mapSubjectName(name, mapOverride) {
-  const t = name.trim();
-  const normal = normalizeName(t);
-  const map = mapOverride || SUBJECT_MAP;
-  const mapped = map[t] || map[normal] || t;
-  return mapped;
-}
-
-function parseCell(v) {
-  const s = String(v).trim();
-  const m = s.match(/^(AA|AS|AF|AI|A|B|C|D|F)\s*(\d+(?:[.,]\d+)?)?$/i);
-  if (m) return { cualitativo: m[1].toUpperCase(), cuantitativo: m[2] ? parseFloat(m[2].replace(',', '.')) : null };
-  const n = parseFloat(s.replace(',', '.'));
-  if (!isNaN(n)) return { cualitativo: null, cuantitativo: n };
-  return { cualitativo: s || null, cuantitativo: null };
-}
-
-function parseExcel(buf) {
-  const wb = XLSX.read(buf, { type: 'array' });
-  const ws = wb.Sheets[wb.SheetNames[0]];
-  const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
-  const nonEmpty = rows.filter(r => r.some(c => c !== ''));
-  if (nonEmpty.length < 2) return null;
-
-  const nameKw = /nombre|alumno|estudiante|apellido|name|alumnos/i;
-  const codeKw = /c[óo]digo|cod|code|matr[ií]cula|identificaci[oó]n/i;
-  const promKw = /promedio|total/i;
-  const skipKw = /n[°º]|no\.?|#|ord/i;
-
-  let hdr = 0;
-  for (let i = 0; i < Math.min(nonEmpty.length, 5); i++) {
-    if (nonEmpty[i].some(c => nameKw.test(String(c)))) { hdr = i; break; }
-  }
-  const cols = nonEmpty[hdr].map(h => String(h).trim());
-  const data = rows.slice(hdr + 1).filter(r => r.some(c => String(c).trim() !== ''));
-
-  let nameCol = -1, codeCol = -1, promCol = -1;
-  const subjCols = [];
-  for (let i = 0; i < cols.length; i++) {
-    const c = cols[i];
-    if (nameKw.test(c) && !codeKw.test(c)) { nameCol = i; continue; }
-    if (codeKw.test(c)) { codeCol = i; continue; }
-    if (promKw.test(c)) { promCol = i; continue; }
-    if (skipKw.test(c)) continue;
-    subjCols.push(i);
-  }
-  if (nameCol < 0) nameCol = 0;
-
-  const records = [];
-  for (const r of data) {
-    const nombre = String(r[nameCol] || '').trim();
-    if (!nombre) continue;
-    
-    const codigo = codeCol >= 0 ? String(r[codeCol] || '').trim() : '';
-    const materias = subjCols.filter(i => i !== promCol && cols[i]).map(i => {
-      // Las celdas en XLSX `sheet_to_json` con `header: 1` a veces no tienen el mismo índice
-      // Si la fila `r` tiene menos elementos que la cabecera `cols`, o si hay desfases por columnas combinadas.
-      // Pero si usamos `r[i]` DEBE mapear con `cols[i]` porque `header: 1` devuelve un array puro por índice.
-      const rawCell = r[i];
-      const cellData = parseCell(rawCell !== undefined ? rawCell : '');
-      return {
-        nombre: mapSubjectName(cols[i]),
-        ...cellData,
-      };
-    }).filter(m => m.cualitativo || m.cuantitativo !== null); // IMPORTANTE: FILTRO RECUPERADO
-    const promedio = promCol >= 0 ? parseCell(r[promCol] !== undefined ? r[promCol] : '') : null;
-    records.push({ nombre, codigo, materias, promedio });
-  }
-  const detectedCols = subjCols.filter(i => i !== promCol && cols[i]).map(i => ({
-    original: cols[i],
-    mapped: mapSubjectName(cols[i]),
-  }));
-  return records.length ? { records, detectedCols, rawRows: data, rawCols: cols } : null;
-}
-
 function readFileAsArrayBuffer(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -257,218 +143,10 @@ function readFileAsArrayBuffer(file) {
   });
 }
 
-async function processFile(file) {
-  if (!/\.(xlsx|xls)$/i.test(file.name)) {
-    showStatus('Formato no soportado. Usá Excel (.xlsx, .xls).', 'error');
-    return;
-  }
-  try {
-    showStatus('Leyendo Excel...', 'info');
-    const buf = await readFileAsArrayBuffer(file);
-    const result = parseExcel(new Uint8Array(buf));
-    if (!result || !result.records || result.records.length === 0) {
-      showStatus('No se encontraron datos en el archivo.', 'error');
-      return;
-    }
-    STATE.parsedData = result.records;
-    STATE.detectedCols = result.detectedCols || [];
-    STATE.rawRows = result.rawRows || null;
-    STATE.rawCols = result.rawCols || null;
-    renderPreview(result.records);
-    renderMapping(result.detectedCols || []);
-    document.getElementById('previewSection')?.classList.remove('hidden');
-    showStatus(`${result.records.length} registros cargados desde Excel.`, 'success');
-  } catch(err) {
-    showStatus(`Error: ${err?.message || err || 'desconocido'}`, 'error');
-  }
-}
-
-function renderPreview(records) {
-  const tbody = document.getElementById('previewBody');
-  if (!tbody) return;
-  tbody.innerHTML = '';
-  records.forEach((r, i) => {
-    const tr = document.createElement('tr');
-    if (r.materias) {
-      const items = r.materias.map(m => `${m.nombre}: ${m.cualitativo || ''}${m.cuantitativo != null ? ' ' + m.cuantitativo : ''}`.trim());
-      tr.innerHTML = `<td>${i + 1}</td><td>${escHtml(r.nombre || '---')}</td><td>${escHtml(r.codigo || '')}</td><td style="font-size:11px;line-height:1.6">${items.map(escHtml).join('<br>')}</td>`;
-    } else {
-      tr.innerHTML = `<td>${i + 1}</td><td>${escHtml(r.nombre || '---')}</td><td></td><td>${escHtml((r.notas || '---').slice(0, 60))}</td>`;
-    }
-    tbody.appendChild(tr);
-  });
-}
-
-function renderMapping(cols) {
-  const section = document.getElementById('mappingSection');
-  const list = document.getElementById('mappingList');
-  if (!section || !list) return;
-  if (!cols.length) { section.classList.add('hidden'); return; }
-  list.innerHTML = '';
-  cols.forEach((c, i) => {
-    const row = document.createElement('div');
-    row.className = 'mapping-row';
-    row.innerHTML = `<span class="orig">${escHtml(c.original)}</span><span class="arrow">→</span><input type="text" class="map-input" data-idx="${i}" value="${escHtml(c.mapped)}">`;
-    list.appendChild(row);
-  });
-  section.classList.remove('hidden');
-}
-
-function applyRemap() {
-  const inputs = document.querySelectorAll('#mappingList .map-input');
-  if (!inputs.length) return;
-  const userMap = {};
-  inputs.forEach(inp => {
-    const idx = parseInt(inp.dataset.idx, 10);
-    const orig = STATE.detectedCols[idx]?.original;
-    if (orig) userMap[orig] = inp.value.trim();
-  });
-  // Rebuild records from raw data with user mapping
-  if (STATE.rawRows && STATE.rawCols) {
-    const rebuilt = rebuildWithMapping(STATE.rawRows, STATE.rawCols, userMap);
-    STATE.parsedData = rebuilt;
-    renderPreview(rebuilt);
-    showStatus('Mapeo re-aplicado. Revisá la tabla.', 'info');
-  }
-}
-
-function rebuildWithMapping(rows, cols, userMap) {
-  function mapName(n) {
-    const t = n.trim();
-    // User mapping has priority
-    if (userMap[t]) return userMap[t];
-    // Then auto-map
-    const normal = normalizeName(t);
-    return SUBJECT_MAP[t] || SUBJECT_MAP[normal] || t;
-  }
-  const nameKw = /nombre|alumno|estudiante|apellido|name|alumnos/i;
-  const codeKw = /c[óo]digo|cod|code|matr[ií]cula|identificaci[oó]n/i;
-  const promKw = /promedio|total/i;
-  const skipKw = /n[°º]|no\.?|#|ord/i;
-  let nameCol = -1, codeCol = -1, promCol = -1;
-  const subjCols = [];
-  for (let i = 0; i < cols.length; i++) {
-    const c = cols[i];
-    if (nameKw.test(c) && !codeKw.test(c)) { nameCol = i; continue; }
-    if (codeKw.test(c)) { codeCol = i; continue; }
-    if (promKw.test(c)) { promCol = i; continue; }
-    if (skipKw.test(c)) continue;
-    subjCols.push(i);
-  }
-  if (nameCol < 0) nameCol = 0;
-  const records = [];
-  for (const r of rows) {
-    const nombre = String(r[nameCol] || '').trim();
-    if (!nombre) continue;
-    const codigo = codeCol >= 0 ? String(r[codeCol] || '').trim() : '';
-    const materias = subjCols.filter(i => i !== promCol && cols[i]).map(i => {
-      const rawCell = r[i];
-      const cellData = parseCell(rawCell !== undefined ? rawCell : '');
-      return {
-        nombre: mapName(cols[i]),
-        ...cellData,
-      };
-    }).filter(m => m.cualitativo || m.cuantitativo !== null); // IMPORTANTE: FILTRO RECUPERADO
-    const promedio = promCol >= 0 ? parseCell(r[promCol] !== undefined ? r[promCol] : '') : null;
-    records.push({ nombre, codigo, materias, promedio });
-  }
-  return records;
-}
-
 function escHtml(s) {
   const d = document.createElement('div');
   d.textContent = s;
   return d.innerHTML;
-}
-
-function confirmData() {
-  if (!document.getElementById('confirmBtn')) return;
-  if (!STATE.parsedData || STATE.parsedData.length === 0) {
-    showStatus('No hay datos.', 'error');
-    return;
-  }
-  const count = STATE.parsedData.length;
-  chrome.runtime.sendMessage({ type: 'CHECK_LICENSE' }, res => {
-    if (res?.valid) {
-      doInject(count);
-    } else {
-      chrome.runtime.sendMessage({ type: 'CHECK_TRIAL' }, trial => {
-        if (trial.remaining >= count) {
-          chrome.runtime.sendMessage({ type: 'USE_TRIAL', payload: { count } }, useResult => {
-            if (useResult.allowed) {
-              doInject(count);
-            } else {
-              showStatus('Solo te quedan ' + useResult.remaining + ' estudiantes de prueba.', 'error');
-            }
-          });
-        } else {
-          if (trial.remaining <= 0) {
-            showStatus('Límite de prueba alcanzado (50 estudiantes). Activá una licencia en Configuración.', 'error');
-          } else {
-            showStatus('Solo te quedan ' + trial.remaining + ' estudiantes de prueba. Cargá un archivo más pequeño.', 'error');
-          }
-        }
-      });
-    }
-  });
-}
-
-function doInject(count) {
-  if (!document.getElementById('confirmBtn')) return;
-  const mode = document.getElementById('modeSelect').value;
-  const speed = parseInt(document.getElementById('speedRange').value, 10);
-  chrome.storage.session.set({
-    injectTask: {
-      data: STATE.parsedData,
-      config: { mode, speed },
-      index: 0
-    }
-  }, () => {
-    showStatus('Datos listos (' + count + ' registros, modo ' + mode + '). Enviando...', 'info');
-    chrome.runtime.sendMessage({
-      type: 'INJECT_START',
-      payload: { mode, speed }
-    }, (res) => {
-      if (res?.ok) showStatus('Inyectando ' + count + ' registros (' + mode + ')...', 'success');
-      else if (res?.error) showStatus(res.error, 'error');
-    });
-  });
-}
-
-function clearData() {
-  STATE.parsedData = null;
-  hide('previewSection');
-  empty('previewBody');
-  clearVal('fileInput');
-  hide('statusMessage');
-  chrome.storage.session.remove(['pendingData', 'injectConfig', 'injectTask']);
-}
-function hide(id) { const el = document.getElementById(id); if (el) el.classList.add('hidden'); }
-function empty(id) { const el = document.getElementById(id); if (el) el.innerHTML = ''; }
-function clearVal(id) { const el = document.getElementById(id); if (el) el.value = ''; }
-
-function loadMachineID() {
-  if (!document.getElementById('machineIDDisplay')) return;
-  chrome.runtime.sendMessage({ type: 'GET_MACHINE_ID' }, res => {
-    const el = document.getElementById('machineIDDisplay');
-    if (res?.id) {
-      el.textContent = res.id;
-      el.dataset.id = res.id;
-    } else {
-      el.textContent = 'Error al obtener ID';
-    }
-  });
-}
-
-function copyMachineID() {
-  const id = document.getElementById('machineIDDisplay')?.dataset.id;
-  if (!id) return;
-  navigator.clipboard.writeText(id).then(() => {
-    const btn = document.getElementById('copyMachineIDBtn');
-    const orig = btn.textContent;
-    btn.textContent = t('copied');
-    setTimeout(() => btn.textContent = orig, 2000);
-  });
 }
 
 function checkLicenseStatus() {
@@ -506,14 +184,6 @@ function activateLicense() {
       setLicenseStatus(t('licenseTokenInvalid'), 'inactive');
     }
   });
-}
-
-function showStatus(msg, type) {
-  const el = document.getElementById('statusMessage');
-  if (!el) return;
-  el.textContent = msg;
-  el.className = `status ${type}`;
-  el.classList.remove('hidden');
 }
 
 function setLicenseStatus(msg, type) {
@@ -613,7 +283,7 @@ function renderGenericPreview(rows, cols) {
   rows.slice(0, 15).forEach((r, i) => {
     const tr = document.createElement('tr');
     const vals = cols.map(c => (r[c] || '').slice(0, 25)).join(' | ');
-    tr.innerHTML = `<td style="padding:4px 8px;border-bottom:1px solid #374151;color:#9ca3af;font-size:11px">${i + 1}</td><td style="padding:4px 8px;border-bottom:1px solid #374151;color:#d1d5db;font-size:11px">${escHtml(vals)}</td>`;
+    tr.innerHTML = `<td style="padding:4px 8px;border-bottom:1px solid var(--border);color:var(--text-secondary);font-size:11px">${i + 1}</td><td style="padding:4px 8px;border-bottom:1px solid var(--border);color:var(--text-light);font-size:11px">${escHtml(vals)}</td>`;
     tbody.appendChild(tr);
   });
 }
@@ -645,8 +315,8 @@ function renderDetectedFields(fields) {
   list.innerHTML = '';
   fields.forEach(f => {
     const div = document.createElement('div');
-    div.style.cssText = 'display:flex;align-items:center;gap:6px;padding:4px 6px;margin-bottom:3px;background:#1f2937;border-radius:4px;font-size:11px';
-    div.innerHTML = `<code style="color:#f59e0b;font-size:11px">${escHtml(f.selector)}</code> <span style="color:#d1d5db;flex:1">${escHtml(f.label)}</span> <span style="color:#6b7280;font-size:10px">${f.tag}${f.type ? `[${f.type}]` : ''}</span>`;
+    div.style.cssText = 'display:flex;align-items:center;gap:6px;padding:4px 6px;margin-bottom:3px;background:var(--surface);border-radius:4px;font-size:11px';
+    div.innerHTML = `<code style="color:var(--warning);font-size:11px">${escHtml(f.selector)}</code> <span style="color:var(--text-light);flex:1">${escHtml(f.label)}</span> <span style="color:var(--text-muted);font-size:10px">${f.tag}${f.type ? `[${f.type}]` : ''}</span>`;
     list.appendChild(div);
   });
   document.getElementById('gfFieldsSection').classList.remove('hidden');
@@ -658,8 +328,8 @@ function renderDetectedButtons(buttons) {
   list.innerHTML = '';
   buttons.forEach(b => {
     const div = document.createElement('div');
-    div.style.cssText = 'display:flex;align-items:center;gap:6px;padding:4px 6px;margin-bottom:3px;background:#1f2937;border-radius:4px;font-size:11px';
-    div.innerHTML = `<code style="color:#34d399;font-size:11px">${b.selector}</code> <span style="color:#d1d5db;flex:1">${escHtml(b.label)}</span>`;
+    div.style.cssText = 'display:flex;align-items:center;gap:6px;padding:4px 6px;margin-bottom:3px;background:var(--surface);border-radius:4px;font-size:11px';
+    div.innerHTML = `<code style="color:var(--success);font-size:11px">${b.selector}</code> <span style="color:var(--text-light);flex:1">${escHtml(b.label)}</span>`;
     div.onclick = () => {
       document.getElementById('gfSubmitSelector').value = b.selector;
       gfShowStatus(t('genericButtonSelected', b.label), 'info');
@@ -674,24 +344,24 @@ function renderMappingUI() {
   container.innerHTML = '';
   document.getElementById('gfMappingSection').classList.remove('hidden');
   if (GF.excelCols.length === 0) {
-    container.innerHTML = '<p style="color:#9ca3af;font-size:12px">Cargá un Excel primero para ver las columnas disponibles.</p>';
+    container.innerHTML = '<p style="color:var(--text-secondary);font-size:12px">Cargá un Excel primero para ver las columnas disponibles.</p>';
     return;
   }
   if (GF.detectedFields.length === 0) {
-    container.innerHTML = '<p style="color:#9ca3af;font-size:12px">Primero detectá los campos de la página.</p>';
+    container.innerHTML = '<p style="color:var(--text-secondary);font-size:12px">Primero detectá los campos de la página.</p>';
     return;
   }
   GF.excelCols.forEach(col => {
     const row = document.createElement('div');
     row.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:4px';
     const label = document.createElement('span');
-    label.style.cssText = 'min-width:80px;font-weight:600;color:#d1d5db;background:#374151;padding:2px 6px;border-radius:3px;text-align:center;font-size:11px';
+    label.style.cssText = 'min-width:80px;font-weight:600;color:var(--text-light);background:var(--border);padding:2px 6px;border-radius:3px;text-align:center;font-size:11px';
     label.textContent = col;
     const arrow = document.createElement('span');
-    arrow.style.cssText = 'color:#6b7280;font-size:11px';
+    arrow.style.cssText = 'color:var(--text-muted);font-size:11px';
     arrow.textContent = '→';
     const select = document.createElement('select');
-    select.style.cssText = 'flex:1;padding:3px 6px;border:1px solid #4b5563;border-radius:4px;font-size:11px;background:#111827;color:#e5e7eb';
+    select.style.cssText = 'flex:1;padding:3px 6px;border:1px solid var(--border-2);border-radius:4px;font-size:11px;background:var(--input-bg);color:var(--input-text)';
     select.innerHTML = '<option value="">— Sin mapear —</option>';
     GF.detectedFields.forEach(f => {
       const opt = document.createElement('option');
@@ -711,7 +381,9 @@ function buildMapping() {
   const mapping = [];
   selects.forEach((sel, i) => {
     if (sel.value && GF.excelCols[i]) {
-      mapping.push({ excelColumn: GF.excelCols[i], selector: sel.value });
+      const opt = sel.options[sel.selectedIndex];
+      const label = opt.textContent.split(' (')[0];
+      mapping.push({ excelColumn: GF.excelCols[i], selector: sel.value, label });
     }
   });
   return mapping;
@@ -753,14 +425,14 @@ function loadGenericConfigs() {
     const container = document.getElementById('gfConfigList');
     container.innerHTML = '';
     if (configs.length === 0) {
-      container.innerHTML = '<p style="color:#9ca3af;font-size:12px">No hay configuraciones guardadas.</p>';
+      container.innerHTML = '<p style="color:var(--text-secondary);font-size:12px">No hay configuraciones guardadas.</p>';
     } else {
       configs.forEach((cfg, i) => {
         const div = document.createElement('div');
-        div.style.cssText = 'display:flex;align-items:center;gap:6px;padding:4px 6px;margin-bottom:3px;background:#1f2937;border-radius:4px';
-        div.innerHTML = `<span style="flex:1;color:#d1d5db;font-size:11px">${escHtml(cfg.name)} (${cfg.fields.length} campos)</span>
-          <button style="background:#3b82f6;color:#fff;border:none;border-radius:3px;padding:2px 8px;cursor:pointer;font-size:10px" data-idx="${i}">Cargar</button>
-          <button style="background:#ef4444;color:#fff;border:none;border-radius:3px;padding:2px 8px;cursor:pointer;font-size:10px" data-idx="${i}">Eliminar</button>`;
+        div.style.cssText = 'display:flex;align-items:center;gap:6px;padding:4px 6px;margin-bottom:3px;background:var(--surface);border-radius:4px';
+        div.innerHTML = `<span style="flex:1;color:var(--text-light);font-size:11px">${escHtml(cfg.name)} (${cfg.fields.length} campos)</span>
+          <button style="background:var(--primary);color:#fff;border:none;border-radius:3px;padding:2px 8px;cursor:pointer;font-size:10px" data-idx="${i}">Cargar</button>
+          <button style="background:var(--error);color:#fff;border:none;border-radius:3px;padding:2px 8px;cursor:pointer;font-size:10px" data-idx="${i}">Eliminar</button>`;
         div.querySelectorAll('button')[0].onclick = () => applyGenericConfig(cfg);
         div.querySelectorAll('button')[1].onclick = () => deleteGenericConfig(i);
         container.appendChild(div);
@@ -835,7 +507,7 @@ function executeGenericFill(startIndex, savedFields) {
     gfShowStatus(startIndex > 0 ? t('resumeStarting', startIndex + 1) : t('executingRecords', GF.excelData.length), 'info');
     chrome.runtime.sendMessage({
       type: 'GENERIC_FILL_START',
-      payload: { rows: GF.excelData, fields: mapping, config: { mode, delay, submitSelector, showSummary }, startIndex }
+      payload: { rows: GF.excelData, fields: mapping, config: { mode, delay, submitSelector, showSummary }, startIndex, fileName: GF.fileName }
     }, res => {
       if (res?.ok) {
         if (startIndex === 0) gfShowStatus(t('genericInjecting', GF.excelData.length), 'success');
