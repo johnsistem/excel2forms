@@ -1,7 +1,7 @@
 # Plan de Implementación - DigitarExtension
 
 ## Visión General
-Extensión Chrome Manifest V3 para digitalizar actas de notas MINED (Nicaragua) offline-first, operando completamente desde una memoria USB sin dejar rastro.
+Extensión Chrome Manifest V3 para digitalizar Excel data Excel2Forms (Nicaragua) offline-first, operando completamente desde una memoria USB sin dejar rastro.
 
 ## Arquitectura
 
@@ -10,17 +10,17 @@ Extensión Chrome Manifest V3 para digitalizar actas de notas MINED (Nicaragua) 
 1. **Core de Extensión** (Manifest V3)
    - Popup camuflado como "Asistente de Accesibilidad"
    - Offscreen Document para OCR (evita sleep del Service Worker)
-   - Content Script para inyección en serviciosenlinea.mined.gob.ni
+   - Content Script para inyección en serviciosenlinea.Excel2Forms.gob.ni
 
 2. **Módulo OCR Local**
-   - **Primario: Tesseract.js** empaquetado en la USB. Las actas impresas se leen perfecto con OCR clásico, sin depender del navegador.
+   - **Primario: Tesseract.js** empaquetado en la USB. Las data impresas se leen perfecto con OCR clásico, sin depender del navegador.
    - Futuro opcional: `window.ai` / Gemini Nano (solo si el Chrome de la oficina lo soporta, algo poco probable en PCs bloqueadas).
 
 3. **Motor de Inyección Fantasma**
    - Simula eventos humanos (`input`, `change`, `keydown`)
-   - Retrasos aleatorios **5-15s por alumno** para que sea rápido pero仍 parezca natural
+   - Retrasos aleatorios **5-15s por record** para que sea rápido pero仍 parezca natural
    - Corre en background: el digitador puede navegar a otra pestaña mientras se llena
-   - Dispara `__doPostBack()` nativo de ASP.NET después de cada alumno para actualizar `__VIEWSTATE` y evitar `validation of viewstate MAC failed`
+   - Dispara `__doPostBack()` nativo de ASP.NET después de cada record para actualizar `__VIEWSTATE` y evitar `validation of viewstate MAC failed`
 
 4. **Sistema de Licencias**
    - Firma asimétrica: token firmado con llave privada (tuya), verificado con llave pública embebida en el código
@@ -38,7 +38,7 @@ Extensión Chrome Manifest V3 para digitalizar actas de notas MINED (Nicaragua) 
 USB → chrome://extensions (load unpacked)
     → Escaneo OCR local (Tesseract.js: imagen → JSON)
     → Validación visual (preview tabla)
-    → Inyección en formulario MINED (5-15s por alumno, background)
+    → Inyección en formulario Excel2Forms (5-15s por record, background)
     → Guardado manual por usuario
 ```
 
@@ -56,11 +56,11 @@ USB → chrome://extensions (load unpacked)
 - Preview de validación
 
 ### Fase 3: Inyección Fantasma
-- Investigar si el formulario MINED usa `__doPostBack()` o `ValidateRequest`
+- Investigar si el formulario Excel2Forms usa `__doPostBack()` o `ValidateRequest`
 - Content script para detectar inputs
 - Disparar postbacks nativos de ASP.NET
-- Retrasos 5-15s por alumno
-- Sandbox de pruebas: HTML local que simula el formulario MINED
+- Retrasos 5-15s por record
+- Sandbox de pruebas: HTML local que simula el formulario Excel2Forms
 
 ### Fase 4: Licencias
 - Generador de tokens con firma asimétrica (Node.js)
@@ -70,6 +70,6 @@ USB → chrome://extensions (load unpacked)
 
 ### Fase 5: Pruebas y Distribución
 - Sandbox local para probar sin conexión al sitio real
-- Prueba con actas reales
+- Prueba con data reales
 - Script de build para USB
 - Documentación de uso

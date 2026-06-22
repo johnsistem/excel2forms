@@ -6,7 +6,7 @@
 feature-generic-forms
 ```
 
-Sin tocar nada de MINED. Todo el código nuevo convive en paralelo.
+Sin tocar nada de Excel2Forms. Todo el código nuevo convive en paralelo.
 
 ## Archivos a modificar / crear
 
@@ -20,7 +20,7 @@ Sin tocar nada de MINED. Todo el código nuevo convive en paralelo.
 | `docs/generic-forms-spec.md` | Especificación de referencia |
 | `docs/plan-generic-forms.md` | Este plan |
 
-Sin cambios en: `parseExcel()`, `renderPreview()`, `simulateInput()`, ni ningún flujo MINED.
+Sin cambios en: `parseExcel()`, `renderPreview()`, `simulateInput()`, ni ningún flujo Excel2Forms.
 
 ## Arquitectura de mensajes
 
@@ -52,8 +52,8 @@ Sin cambios en: `parseExcel()`, `renderPreview()`, `simulateInput()`, ni ningún
 ### 1. UI — Nueva pestaña en popup.html
 
 ```
-Tab 1: "Cargar Acta"     (MINED, existente)
-Tab 2: "Configuración"   (MINED, existente)
+Tab 1: "Cargar Data"     (Excel2Forms, existente)
+Tab 2: "Configuración"   (Excel2Forms, existente)
 Tab 3: "Formulario Genérico"  ← NUEVA
 ```
 

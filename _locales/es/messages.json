@@ -30,7 +30,7 @@
   "excelFormatDesc": { "message": "Una fila = un registro:" },
   "excelFormatHelp": { "message": "La primera fila debe tener los nombres de columna. Cada columna se asigna a un campo del formulario." },
   "uploadExcel": { "message": "Arrastra un archivo Excel aquí o haz clic para seleccionar" },
-  "uploadExcelHint": { "message": "Formatos: Excel (.xlsx, .xls)" },
+  "uploadExcelHint": { "message": "Formatos: .xlsx, .xls, .csv" },
   "preview": { "message": "Vista Previa" },
   "recordsLoaded": { "message": "{0} registros cargados." },
   "noData": { "message": "No se encontraron datos en el archivo." },
@@ -87,7 +87,7 @@
   "noExcelData": { "message": "Cargá un archivo Excel primero." },
   "noMappingAssigned": { "message": "Asigná al menos una columna a un campo." },
   "configDeleted": { "message": "Configuración eliminada." },
-  "genericFormatError": { "message": "Formato no soportado. Usá Excel (.xlsx, .xls)." },
+  "genericFormatError": { "message": "Formato no soportado. Usá Excel (.xlsx, .xls, .csv." },
   "genericReading": { "message": "Leyendo Excel..." },
   "genericNoData": { "message": "No se encontraron datos en el archivo." },
   "genericError": { "message": "Error: {0}" },
@@ -106,5 +106,8 @@
   "resumeStarting": { "message": "Reanudando desde el registro {0}..." },
   "unknown": { "message": "desconocido" },
   "loading": { "message": "Cargando..." },
-  "copied": { "message": "✓ Copiado" }
+  "copied": { "message": "✓ Copiado" },
+  "confirmation1": { "message": "Confirmación 1 (opcional)" },
+  "confirmation2": { "message": "Confirmación 2 (opcional)" },
+  "contactBtn": { "message": "Contactar" }
 }

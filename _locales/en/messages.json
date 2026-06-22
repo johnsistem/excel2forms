@@ -30,7 +30,7 @@
   "excelFormatDesc": { "message": "One row = one record:" },
   "excelFormatHelp": { "message": "The first row must contain column names. Each column is mapped to a form field." },
   "uploadExcel": { "message": "Drag an Excel file here or click to select" },
-  "uploadExcelHint": { "message": "Formats: Excel (.xlsx, .xls)" },
+  "uploadExcelHint": { "message": "Formats: .xlsx, .xls, .csv" },
   "preview": { "message": "Preview" },
   "recordsLoaded": { "message": "{0} records loaded." },
   "executingRecords": { "message": "Running {0} records..." },
@@ -65,7 +65,7 @@
   "submitLabel": { "message": "Save Button" },
   "submitHelp": { "message": "Detect fields and click a button in the list to fill this automatically." },
 
-  "genericFormatError": { "message": "Unsupported format. Use Excel (.xlsx, .xls)." },
+  "genericFormatError": { "message": "Unsupported format. Use Excel (.xlsx, .xls, .csv." },
   "genericReading": { "message": "Reading Excel..." },
   "genericNoData": { "message": "No data found in the file." },
   "genericError": { "message": "Error: {0}" },
@@ -106,5 +106,8 @@
   "configSaved": { "message": "Configuration saved." },
   "configLoaded": { "message": "Configuration loaded." },
   "showSummary": { "message": "Show summary at end" },
-  "configDeleted": { "message": "Configuration deleted." }
+  "configDeleted": { "message": "Configuration deleted." },
+  "confirmation1": { "message": "Confirmation 1 (optional)" },
+  "confirmation2": { "message": "Confirmation 2 (optional)" },
+  "contactBtn": { "message": "Contact Us" }
 }
