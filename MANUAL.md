@@ -69,11 +69,11 @@ La carpeta `dist-usb/` es la que se copia a la USB. El código está ofuscado co
 | Modo | Comportamiento |
 |------|---------------|
 | Semi-automático | Llena 1 materia → se detiene → click Siguiente |
-| Por Estudiante | Llena todas las materias de 1 estudiante → se detiene → click Siguiente estudiante |
+| By Record | Llena todas las materias de 1 record → se detiene → click Siguiente record |
 | Automático | Llena todo de corrido sin detenerse |
 
 ## Confirmación modal
-Después de click "Guardar" en el MINED, la extensión maneja automáticamente:
+Después de click "Guardar" en el Excel2Forms, la extensión maneja automáticamente:
 1. Modal "¿Estás seguro?" → click "Sí, Guardar"
 2. Modal de éxito → click "OK"
 
@@ -81,7 +81,7 @@ Después de click "Guardar" en el MINED, la extensión maneja automáticamente:
 - `src/background.js` — service worker, licencias, contador trial, machine ID
 - `src/popup.js` — UI del popup, carga de Excel, confirmación
 - `src/popup.html` — estructura del popup
-- `src/content.js` — inyección de datos en el formulario MINED
+- `src/content.js` — inyección de datos en el formulario Excel2Forms
 - `src/popup.css` — estilos
 - `tools/generar-licencia.js` — script para generar licencias (solo el desarrollador)
 - `sandbox.html` — simulador para pruebas locales

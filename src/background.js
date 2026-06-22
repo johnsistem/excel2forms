@@ -86,7 +86,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       (async () => {
         const tab = await findCurrentTab();
         if (!tab) {
-          sendResponse({ error: 'No se encontró una pestaña activa. Abrí el formulario en una pestaña normal y volvé al popup.' });
+          sendResponse({ error: 'No active tab found. Open the form in a normal tab and return to the popup.' });
           return;
         }
         try {
@@ -96,9 +96,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           });
           await new Promise(r => setTimeout(r, 400));
           const result = await chrome.tabs.sendMessage(tab.id, { type: 'DETECT_FIELDS' });
-          sendResponse({ fields: result.fields, buttons: result.buttons });
+          sendResponse({ fields: result.fields, buttons: result.buttons, autoGuardar: result.autoGuardar });
         } catch (e) {
-          sendResponse({ error: 'Error al detectar campos en ' + (tab.url || '?') + '. Asegurate de estar en la página con el formulario.' });
+          sendResponse({ error: 'Error detecting fields in ' + (tab.url || '?') + '. Make sure you are on the form page.' });
         }
       })();
       return true;
@@ -107,7 +107,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       (async () => {
         const tab = await findCurrentTab();
         if (!tab) {
-          sendResponse({ error: 'No se encontró una pestaña activa. Abrí el formulario en una pestaña normal.' });
+          sendResponse({ error: 'No active tab found. Open the form in a normal tab.' });
           return;
         }
         try {
@@ -122,7 +122,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           });
           sendResponse({ ok: true });
         } catch (e) {
-          sendResponse({ error: 'Error al ejecutar en ' + (tab.url || '?') + '. Asegurate de estar en la página con el formulario.' });
+          sendResponse({ error: 'Error executing on ' + (tab.url || '?') + '. Make sure you are on the form page.' });
         }
       })();
       return true;

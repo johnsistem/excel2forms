@@ -235,14 +235,20 @@ function initGenericTab() {
 }
 
 async function processFileGeneric(file) {
-  if (!/\.(xlsx|xls)$/i.test(file.name)) {
+  if (!/\.(xlsx|xls|csv)$/i.test(file.name)) {
     gfShowStatus(t('genericFormatError'), 'error');
     return;
   }
   try {
     gfShowStatus(t('genericReading'), 'info');
-    const buf = await readFileAsArrayBuffer(file);
-    const result = parseExcelGeneric(new Uint8Array(buf));
+    let result;
+    if (/\.csv$/i.test(file.name)) {
+      const text = await file.text();
+      result = parseCsvGeneric(text);
+    } else {
+      const buf = await readFileAsArrayBuffer(file);
+      result = parseExcelGeneric(new Uint8Array(buf));
+    }
     if (!result || !result.rows || result.rows.length === 0) {
       gfShowStatus(t('genericNoData'), 'error');
       return;
@@ -252,12 +258,45 @@ async function processFileGeneric(file) {
     GF.fileName = file.name;
     renderGenericPreview(result.rows, result.cols);
     document.getElementById('gfPreviewSection').classList.remove('hidden');
-    // Re-render mapping if fields already detected
     if (GF.detectedFields.length > 0) renderMappingUI();
     gfShowStatus(t('recordsLoaded', result.rows.length), 'success');
   } catch(err) {
     gfShowStatus(t('genericError', err?.message || err || t('unknown')), 'error');
   }
+}
+
+function parseCsvGeneric(csvText) {
+  const lines = csvText.replace(/\r\n/g, '\n').split('\n').filter(l => l.trim());
+  if (lines.length < 2) return null;
+  const cols = parseCsvLine(lines[0]);
+  const dataRows = lines.slice(1).filter(l => l.trim());
+  const rows = dataRows.map(line => {
+    const vals = parseCsvLine(line);
+    const obj = {};
+    cols.forEach((c, i) => { obj[c] = i < vals.length ? vals[i].trim() : ''; });
+    return obj;
+  });
+  return { rows, cols };
+}
+
+function parseCsvLine(line) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQuotes) {
+      if (ch === '"' && line[i + 1] === '"') { current += '"'; i++; }
+      else if (ch === '"') inQuotes = false;
+      else current += ch;
+    } else {
+      if (ch === '"') inQuotes = true;
+      else if (ch === ',') { result.push(current); current = ''; }
+      else current += ch;
+    }
+  }
+  result.push(current);
+  return result;
 }
 
 function parseExcelGeneric(buf) {
@@ -294,13 +333,15 @@ function detectFields() {
   btn.textContent = t('detecting');
   chrome.runtime.sendMessage({ type: 'DETECT_FIELDS' }, res => {
     btn.disabled = false;
-    btn.textContent = '🔍 Detectar Campos en la Página';
+    btn.textContent = t('detectFields');
     if (res?.fields) {
       GF.detectedFields = res.fields;
       GF.detectedButtons = res.buttons || [];
       renderDetectedFields(res.fields);
       renderDetectedButtons(GF.detectedButtons);
       renderMappingUI();
+      // Auto-assign detected buttons to slots
+      if (res.autoGuardar) document.getElementById('gfSubmitSelector').value = res.autoGuardar;
       gfShowStatus(t('fieldsDetected', res.fields.length, GF.detectedButtons.length), 'success');
     } else if (res?.error) {
       gfShowStatus(res.error, 'error');
@@ -344,11 +385,11 @@ function renderMappingUI() {
   container.innerHTML = '';
   document.getElementById('gfMappingSection').classList.remove('hidden');
   if (GF.excelCols.length === 0) {
-    container.innerHTML = '<p style="color:var(--text-secondary);font-size:12px">Cargá un Excel primero para ver las columnas disponibles.</p>';
+    container.innerHTML = '<p style="color:var(--text-secondary);font-size:12px">Load an Excel first to see available columns.</p>';
     return;
   }
   if (GF.detectedFields.length === 0) {
-    container.innerHTML = '<p style="color:var(--text-secondary);font-size:12px">Primero detectá los campos de la página.</p>';
+    container.innerHTML = `<p style="color:var(--text-secondary);font-size:12px">${t('noFields')}</p>`;
     return;
   }
   GF.excelCols.forEach(col => {
@@ -390,14 +431,14 @@ function buildMapping() {
 }
 
 function saveGenericConfig() {
-  const name = prompt('Nombre para esta configuración:', GF.fileName || 'Config');
-  if (!name) return;
   const mapping = buildMapping();
   if (mapping.length === 0) {
     gfShowStatus(t('genericNoMapping'), 'error');
     return;
   }
-  const mode = document.getElementById('gfModeSelect').value;
+  showPromptModal('Name for this configuration:', GF.fileName || 'Config', name => {
+    if (!name) return;
+    const mode = document.getElementById('gfModeSelect').value;
   const delay = parseInt(document.getElementById('gfSpeedRange').value, 10);
   const submitSelector = document.getElementById('gfSubmitSelector').value.trim() || '';
   const showSummary = document.getElementById('gfShowSummary').checked;
@@ -417,6 +458,7 @@ function saveGenericConfig() {
       gfShowStatus(t('genericConfigSaved', name), 'success');
     });
   });
+  });
 }
 
 function loadGenericConfigs() {
@@ -425,14 +467,14 @@ function loadGenericConfigs() {
     const container = document.getElementById('gfConfigList');
     container.innerHTML = '';
     if (configs.length === 0) {
-      container.innerHTML = '<p style="color:var(--text-secondary);font-size:12px">No hay configuraciones guardadas.</p>';
+      container.innerHTML = '<p style="color:var(--text-secondary);font-size:12px">No saved configurations.</p>';
     } else {
       configs.forEach((cfg, i) => {
         const div = document.createElement('div');
         div.style.cssText = 'display:flex;align-items:center;gap:6px;padding:4px 6px;margin-bottom:3px;background:var(--surface);border-radius:4px';
-        div.innerHTML = `<span style="flex:1;color:var(--text-light);font-size:11px">${escHtml(cfg.name)} (${cfg.fields.length} campos)</span>
-          <button style="background:var(--primary);color:#fff;border:none;border-radius:3px;padding:2px 8px;cursor:pointer;font-size:10px" data-idx="${i}">Cargar</button>
-          <button style="background:var(--error);color:#fff;border:none;border-radius:3px;padding:2px 8px;cursor:pointer;font-size:10px" data-idx="${i}">Eliminar</button>`;
+        div.innerHTML = `<span style="flex:1;color:var(--text-light);font-size:11px">${escHtml(cfg.name)} (${cfg.fields.length} fields)</span>
+          <button style="background:var(--primary);color:#fff;border:none;border-radius:3px;padding:2px 8px;cursor:pointer;font-size:10px" data-idx="${i}">Load</button>
+          <button style="background:var(--error);color:#fff;border:none;border-radius:3px;padding:2px 8px;cursor:pointer;font-size:10px" data-idx="${i}">Delete</button>`;
         div.querySelectorAll('button')[0].onclick = () => applyGenericConfig(cfg);
         div.querySelectorAll('button')[1].onclick = () => deleteGenericConfig(i);
         container.appendChild(div);
@@ -468,6 +510,39 @@ function deleteGenericConfig(idx) {
   });
 }
 
+function showPromptModal(label, defaultValue, callback) {
+  const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+  const bg = isDark ? '#1e293b' : '#ffffff';
+  const textColor = isDark ? '#e2e8f0' : '#1f2937';
+  const inputBg = isDark ? '#0f172a' : '#f9fafb';
+  const borderColor = isDark ? '#475569' : '#d1d5db';
+  const btnBg = isDark ? '#475569' : '#e5e7eb';
+  const btnText = isDark ? '#e2e8f0' : '#374151';
+  const overlay = document.createElement('div');
+  Object.assign(overlay.style, {
+    position:'fixed',inset:'0',zIndex:'999999',background:'rgba(0,0,0,.6)',
+    display:'flex',alignItems:'center',justifyContent:'center',
+  });
+  overlay.innerHTML = `
+    <div style="background:${bg};border-radius:10px;padding:24px;min-width:320px;box-shadow:0 8px 32px rgba(0,0,0,.4)">
+      <p style="color:${textColor};font-size:14px;margin:0 0 12px;font-weight:500">${label}</p>
+      <input id="__prompt_input" type="text" value="${escHtml(defaultValue)}"
+        style="width:100%;padding:8px 10px;border:1px solid ${borderColor};border-radius:6px;background:${inputBg};color:${textColor};font-size:14px">
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
+        <button id="__prompt_cancel" style="padding:6px 18px;border:none;border-radius:5px;cursor:pointer;font-size:13px;background:${btnBg};color:${btnText}">Cancel</button>
+        <button id="__prompt_ok" style="padding:6px 18px;border:none;border-radius:5px;cursor:pointer;font-size:13px;background:#f59e0b;color:#000">OK</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  const input = document.getElementById('__prompt_input');
+  input.focus();
+  input.select();
+  function close(val) { overlay.remove(); callback(val); }
+  document.getElementById('__prompt_ok').onclick = () => close(input.value.trim());
+  document.getElementById('__prompt_cancel').onclick = () => close('');
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') close(input.value.trim()); if (e.key === 'Escape') close(''); });
+}
+
 function executeGenericFill(startIndex, savedFields) {
   if (typeof startIndex !== 'number' || startIndex < 0) startIndex = 0;
   if (!GF.excelData || GF.excelData.length === 0) {
@@ -491,6 +566,7 @@ function executeGenericFill(startIndex, savedFields) {
     const delay = parseInt(document.getElementById('gfSpeedRange').value, 10);
     const submitSelector = document.getElementById('gfSubmitSelector').value.trim() || '';
     const showSummary = document.getElementById('gfShowSummary').checked;
+    const baseConfig = { mode, delay, submitSelector, showSummary };
     const checkpoint = {
       index: startIndex,
       total: GF.excelData.length,
@@ -498,7 +574,7 @@ function executeGenericFill(startIndex, savedFields) {
       failed: 0,
       rows: GF.excelData,
       fields: mapping,
-      config: { mode, delay, submitSelector, showSummary },
+      config: baseConfig,
       fileName: GF.fileName,
       status: 'running',
       timestamp: Date.now()
@@ -507,7 +583,7 @@ function executeGenericFill(startIndex, savedFields) {
     gfShowStatus(startIndex > 0 ? t('resumeStarting', startIndex + 1) : t('executingRecords', GF.excelData.length), 'info');
     chrome.runtime.sendMessage({
       type: 'GENERIC_FILL_START',
-      payload: { rows: GF.excelData, fields: mapping, config: { mode, delay, submitSelector, showSummary }, startIndex, fileName: GF.fileName }
+      payload: { rows: GF.excelData, fields: mapping, config: baseConfig, startIndex, fileName: GF.fileName }
     }, res => {
       if (res?.ok) {
         if (startIndex === 0) gfShowStatus(t('genericInjecting', GF.excelData.length), 'success');

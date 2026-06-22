@@ -133,7 +133,7 @@ Extensión Chrome Manifest V3 para digitalizar actas de notas del MINED
   - sandbox.html: http://localhost (o 127.0.0.1) para pruebas offline
   - Probar: abrir sandbox.html en localhost, subir Excel, click "Confirmar"
   - Se puede usar "Demo Auto" o "Demo Semi" desde el sandbox
-  - MINED real: serviciosenlinea.mined.gob.ni
+  
 
 10. PENDIENTE (Opcional)
 ─────────────────────────

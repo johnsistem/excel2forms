@@ -3,9 +3,9 @@
 ## ¿Qué es?
 Extensión de Chrome que automatiza el llenado de formularios web desde archivos Excel. El usuario carga un Excel plano (una fila = un registro, primera fila = nombres de columna), detecta los campos del formulario en la página activa, mapea columnas a campos, y ejecuta el llenado automático.
 
-## Estado: Solo Genérico (MINED removido)
-- MINED fue removido del HTML y guardado con `?.` en JS. No hay rastro visible de MINED en el popup.
-- El código MINED en `background.js` y `content.js` sigue intacto pero inactivo (nunca recibe mensajes).
+## Estado: Solo Genérico (Excel2Forms removido)
+- Excel2Forms fue removido del HTML y guardado con `?.` en JS. No hay rastro visible de Excel2Forms en el popup.
+- El código Excel2Forms en `background.js` y `content.js` sigue intacto pero inactivo (nunca recibe mensajes).
 - `checkLicenseAccess()`, `checkLicenseStatus()`, `loadMachineID()` tienen early returns si los elementos no existen.
 
 ## Estructura de Archivos
@@ -14,7 +14,7 @@ Extensión de Chrome que automatiza el llenado de formularios web desde archivos
 - Chrome Extension MV3
 - `default_locale: es` con `__MSG_` para name/description
 - Permisos: storage, activeTab, scripting
-- Content script corre en: `serviciosenlinea.mined.gob.ni`, localhost, archivos locales
+- Content script corre en: `serviciosenlinea.Excel2Forms.gob.ni`, localhost, archivos locales
 - Content security policy: permite wasm-unsafe-eval (necesario para xlsx.js)
 
 ### `src/popup.html` (148 líneas)
@@ -35,7 +35,7 @@ Extensión de Chrome que automatiza el llenado de formularios web desde archivos
   - `saveGenericConfig()`, `loadGenericConfigs()`, `applyGenericConfig()`, `deleteGenericConfig()`
   - `executeGenericFill()` — envía `GENERIC_FILL_START` con rows + mapping
   - `stopGenericFill()` — envía `GENERIC_FILL_STOP`
-- **MINED legacy** (guardado): `checkLicenseAccess()`, `confirmData()`, `clearData()`, etc.
+- **Excel2Forms legacy** (guardado): `checkLicenseAccess()`, `confirmData()`, `clearData()`, etc.
 - Todos los status messages usan `t()` para traducción
 
 ### `sandbox.html` (170 líneas)
@@ -57,13 +57,13 @@ Extensión de Chrome que automatiza el llenado de formularios web desde archivos
 - Service worker principal
 - Maneja `DETECT_FIELDS`, `GENERIC_FILL_START`, `GENERIC_FILL_STOP`
 - Inyección `<script>` en página para `btn.click()` cross-world
-- Código MINED legacy intacto (`FILL_START`, `FILL_STOP`, `VALIDATE_LICENSE`, etc.)
+- Código Excel2Forms legacy intacto (`FILL_START`, `FILL_STOP`, `VALIDATE_LICENSE`, etc.)
 
 ### `content.js`
-- Se inyecta en MINED y localhost
+- Se inyecta en Excel2Forms y localhost
 - `scanFields()`: devuelve `{fields, buttons}` detectados
 - Meta guard para evitar duplicación de listeners
-- Código MINED legacy (`INJECTOR`, `SCRIPT_FILL`, etc.) intacto
+- Código Excel2Forms legacy (`INJECTOR`, `SCRIPT_FILL`, etc.) intacto
 
 ## Cómo Usar (para video demo)
 1. Abrir `sandbox.html` en Chrome (localhost o archivo local)
@@ -77,5 +77,5 @@ Extensión de Chrome que automatiza el llenado de formularios web desde archivos
 
 ## Próximos Pasos
 - Subir a Chrome Web Store como Excel2Forms
-- Empaquetar portable para USB (MINED)
+- Empaquetar portable para USB (Excel2Forms)
 - Mejorar UI para la store (screenshots, descripción)
