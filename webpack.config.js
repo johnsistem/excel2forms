@@ -27,8 +27,6 @@ module.exports = {
         { from: 'icons', to: 'icons' },
         { from: 'src/popup.html', to: 'src/popup.html' },
         { from: 'src/popup.css', to: 'src/popup.css' },
-        { from: 'tessdata', to: 'tessdata' },
-        { from: 'tesseract', to: 'tesseract' },
         { from: 'sandbox.html', to: 'sandbox.html' },
         { from: '_locales', to: '_locales' }
       ]

@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Employee Registration</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: 'Segoe UI', Roboto, Arial, sans-serif; max-width: 780px; margin: 0 auto; padding: 0; background: #f0f2f5; }
+    .header { background: linear-gradient(135deg, #1e3a5f, #2563eb); color: #fff; padding: 24px 30px; border-radius: 0 0 12px 12px; margin-bottom: 24px; }
+    .header h1 { margin: 0; font-size: 22px; font-weight: 600; }
+    .header p { margin: 4px 0 0; font-size: 13px; opacity: .8; }
+    .card { background: #fff; border-radius: 10px; padding: 24px 30px; margin: 0 16px 16px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-weight: 600; margin-bottom: 4px; font-size: 13px; color: #374151; }
+    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px 12px; border: 1.5px solid #d1d5db; border-radius: 6px; font-size: 14px; transition: border-color .15s; background: #fff; }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.12); }
+    .radio-group, .checkbox-group { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; padding: 6px 0; }
+    .radio-group label, .checkbox-group label { font-weight: 400; font-size: 14px; color: #374151; display: flex; align-items: center; gap: 5px; cursor: pointer; }
+    .radio-group input, .checkbox-group input { width: auto; margin: 0; }
+    button { padding: 11px 32px; background: #2563eb; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 15px; font-weight: 500; }
+    button:hover { background: #1d4ed8; }
+    .result { background: #f0fdf4; border: 2px solid #22c55e; border-radius: 10px; padding: 20px; margin: 0 16px 16px; white-space: pre-wrap; display: none; }
+    .result.show { display: block; }
+    .result h2 { margin: 0 0 8px; font-size: 16px; color: #166534; }
+    .result pre { margin: 0; font-size: 13px; color: #374151; }
+    .modal { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,.4); display:flex; align-items:center; justify-content:center; z-index:9999; }
+    .modal-content { background:#fff; padding:30px 35px; border-radius:12px; text-align:center; min-width:340px; box-shadow:0 8px 30px rgba(0,0,0,.15); }
+    .modal h3 { margin:0 0 8px; font-size:18px; }
+    .modal p { margin:0 0 22px; color:#6b7280; font-size:14px; }
+    .btn-modal { padding:9px 28px; margin:0 5px; border:none; border-radius:6px; cursor:pointer; font-size:14px; font-weight:500; background:#2563eb; color:#fff; }
+    .btn-modal:hover { background:#1d4ed8; }
+    .btn-cancel { background:#9ca3af; }
+    .btn-cancel:hover { background:#6b7280; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Employee Registration</h1>
+    <p>Fill in all required fields marked with *</p>
+  </div>
+
+  <div class="result" id="resultado"><h2>✅ Data Received</h2><pre id="datos"></pre></div>
+
+  <div class="card">
+    <form method="POST" action="">
+    <div class="form-group">
+      <label for="fullName">Full Name</label>
+      <input type="text" id="fullName" name="fullName" placeholder="e.g. John Smith">
+    </div>
+    <div class="form-group">
+      <label for="email">Email</label>
+      <input type="email" id="email" name="email" placeholder="email@example.com">
+    </div>
+    <div class="form-group">
+      <label for="dob">Date of Birth</label>
+      <input type="date" id="dob" name="dob">
+    </div>
+    <div class="form-group">
+      <label>Gender</label>
+      <div class="radio-group">
+        <label><input type="radio" name="gender" value="Male"> Male</label>
+        <label><input type="radio" name="gender" value="Female"> Female</label>
+        <label><input type="radio" name="gender" value="Other"> Other</label>
+      </div>
+    </div>
+    <div class="form-group">
+      <label for="country">Country</label>
+      <select id="country" name="country">
+        <option value="">Select...</option>
+        <option value="United States">United States</option>
+        <option value="Canada">Canada</option>
+        <option value="United Kingdom">United Kingdom</option>
+        <option value="Australia">Australia</option>
+        <option value="New Zealand">New Zealand</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Interests</label>
+      <div class="checkbox-group">
+        <label><input type="checkbox" name="interests" value="Sports"> Sports</label>
+        <label><input type="checkbox" name="interests" value="Music"> Music</label>
+        <label><input type="checkbox" name="interests" value="Technology"> Technology</label>
+        <label><input type="checkbox" name="interests" value="Movies"> Movies</label>
+      </div>
+    </div>
+    <div class="form-group">
+      <label for="comments">Comments</label>
+      <textarea id="comments" name="comments" rows="3" placeholder="Write here..."></textarea>
+    </div>
+    <button type="button" id="btnEnviar">Submit Registration</button>
+  </form>
+  </div>
+
+  <!-- Modal 1: Confirmation -->
+  <div id="modal1" class="modal" style="display:none">
+    <div class="modal-content">
+      <h3>⚠️ Confirmation</h3>
+      <p>Are you sure you want to save this data?</p>
+      <button id="btnSi" class="btn-modal">Yes</button>
+      <button id="btnNo" class="btn-modal btn-cancel">No</button>
+    </div>
+  </div>
+
+  <!-- Modal 2: Success -->
+  <div id="modal2" class="modal" style="display:none">
+    <div class="modal-content">
+      <h3>✅ Guardado</h3>
+      <p>Data has been saved successfully.</p>
+      <button id="btnOk" class="btn-modal">OK</button>
+    </div>
+  </div>
+
+  <style>
+    .modal { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center; z-index:9999; }
+    .modal-content { background:#fff; padding:30px; border-radius:8px; text-align:center; min-width:300px; box-shadow:0 4px 20px rgba(0,0,0,.3); }
+    .modal h3 { margin:0 0 10px; }
+    .modal p { margin:0 0 20px; color:#555; }
+    .btn-modal { padding:8px 25px; margin:0 5px; border:none; border-radius:4px; cursor:pointer; font-size:14px; background:#2563eb; color:#fff; }
+    .btn-cancel { background:#9ca3af; }
+  </style>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.toString()) {
+      document.getElementById('resultado').classList.add('show');
+      let txt = '';
+      for (const [k, v] of urlParams) { txt += `${k}: ${v}\n`; }
+      document.getElementById('datos').textContent = txt;
+    }
+
+    document.getElementById('btnEnviar').addEventListener('click', () => {
+      document.getElementById('modal1').style.display = 'flex';
+    });
+    document.getElementById('btnNo').addEventListener('click', () => {
+      document.getElementById('modal1').style.display = 'none';
+    });
+    document.getElementById('btnSi').addEventListener('click', () => {
+      document.getElementById('modal1').style.display = 'none';
+      document.getElementById('modal2').style.display = 'flex';
+    });
+    document.getElementById('btnOk').addEventListener('click', () => {
+      document.getElementById('modal2').style.display = 'none';
+      const form = document.querySelector('form');
+      const fd = new FormData(form);
+      let txt = '';
+      for (const [k, v] of fd) {
+        if (k === 'intereses') txt += `intereses: ${v}\n`;
+        else txt += `${k}: ${v}\n`;
+      }
+      document.getElementById('datos').textContent = txt;
+      document.getElementById('resultado').classList.add('show');
+    });
+  </script>
+</body>
+</html>

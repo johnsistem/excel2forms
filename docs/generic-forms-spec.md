@@ -4,8 +4,8 @@
 
 Rama: `feature-generic-forms`
 
-NO modificar la funcionalidad actual del MINED.
-La rama actual del MINED debe seguir funcionando exactamente igual.
+NO modificar la funcionalidad actual del Excel2Forms.
+La rama actual del Excel2Forms debe seguir funcionando exactamente igual.
 
 ## Objetivo principal
 
@@ -24,7 +24,7 @@ NO CONSTRUIR NADA DE ESO.
 
 ## Hipótesis
 
-Actualmente la extensión funciona para MINED porque conoce los selectores y el flujo.
+Actualmente la extensión funciona para Excel2Forms porque conoce los selectores y el flujo.
 Quiero comprobar si la misma extensión puede funcionar en cualquier página web mediante un sistema simple de mapeo.
 
 ## Funcionalidad a construir

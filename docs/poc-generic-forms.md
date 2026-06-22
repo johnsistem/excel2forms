@@ -23,7 +23,7 @@ y se ejecutó. Los 3 registros se llenaron completos y correctos.
 
 ## Qué NO se intentó
 
-- Formularios con tablas dinámicas (MINED, datagrids)
+- Formularios con tablas dinámicas (Excel2Forms, datagrids)
 - Páginas con modales que se abren después de clicks
 - Selectores múltiples con el mismo name/id
 - Páginas con iframes o shadow DOM
@@ -83,7 +83,7 @@ y se ejecutó. Los 3 registros se llenaron completos y correctos.
 
 Sí, el motor actual puede convertirse en una herramienta genérica para
 automatizar captura de datos en formularios web. La extensión sigue haciendo
-exactamente lo mismo para MINED. El modo "Formulario Genérico" es una pestaña
+exactamente lo mismo para Excel2Forms. El modo "Formulario Genérico" es una pestaña
 nueva que convive al lado. Cero riesgos.
 
 ## Plan de trabajo (checklist)
@@ -98,4 +98,4 @@ nueva que convive al lado. Cero riesgos.
   - [x] Incluir botones (`button`, `a[role="button"]`)
   - [x] Selector único (fallback con ruta + `:nth-of-type`)
   - [x] Filtro básico para datagrids/tablas de datos
-- [ ] Verificación rápida en `sandbox.html` y validación con un flujo tipo MINED (confirmación doble + OK)
+- [ ] Verificación rápida en `sandbox.html` y validación con un flujo tipo Excel2Forms (confirmación doble + OK)

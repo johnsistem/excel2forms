@@ -5,13 +5,14 @@
   <title>Excel2Forms</title>
   <link rel="stylesheet" href="popup.css">
 </head>
-<body style="background:#111827;">
+<body>
   <div class="container">
     <header>
-      <h1 style="display:flex;align-items:center;gap:16px;font-size:26px;font-weight:600"><img src="../icons/icon128.png" alt="" style="width:64px;height:64px;border-radius:14px"> Excel2Forms</h1>
+      <button id="themeToggle" class="theme-toggle" title="Cambiar tema">🌙</button>
+      <h1 style="display:flex;align-items:center;justify-content:center;gap:16px;font-size:26px;font-weight:600"><img src="../icons/icon128.png" alt="" style="width:64px;height:64px;border-radius:14px"> Excel2Forms</h1>
       <nav class="tabs">
-        <button class="tab active" data-tab="generic" data-i18n="tabGeneric">Formulario Genérico</button>
-        <button class="tab" data-tab="settings" data-i18n="tabSettings">Configuración</button>
+        <button class="tab active" data-tab="generic" data-i18n="tabGeneric">Generic Form</button>
+        <button class="tab" data-tab="settings" data-i18n="tabSettings">Settings</button>
       </nav>
     </header>
 
@@ -21,14 +22,14 @@
     <div id="licenseBlock" class="license-block hidden">
       <div class="license-block-icon">🔒</div>
       <div class="license-block-title" data-i18n="licenseRequired">Licencia Requerida</div>
-      <div class="license-block-text" data-i18n="licenseBlockText">Esta extensión requiere una licencia válida para funcionar. Ingresá tu clave de licencia en Configuración.</div>
-      <button class="btn primary" onclick="document.querySelector('[data-tab=settings]').click()" data-i18n="goToSettings">Ir a Configuración</button>
+      <div class="license-block-text" data-i18n="licenseBlockText">Esta extensión requiere una licencia válida para funcionar. Ingresá tu clave de licencia en Settings.</div>
+      <button class="btn primary" onclick="document.querySelector('[data-tab=settings]').click()" data-i18n="goToSettings">Ir a Settings</button>
     </div>
 
     <section id="tab-generic" class="tab-content active">
-      <div id="gfResumeBanner" class="hidden" style="background:#1e3a5f;border:1px solid #60a5fa;border-radius:8px;padding:12px;margin-bottom:12px">
-        <p style="font-size:13px;font-weight:600;color:#60a5fa;margin-bottom:6px" data-i18n="resumeTitle">⏸ Ejecución pausada</p>
-        <p id="gfResumeText" style="font-size:12px;color:#d1d5db;margin-bottom:8px"></p>
+      <div id="gfResumeBanner" class="hidden" style="background:var(--info-border);border:1px solid var(--info-text);border-radius:8px;padding:12px;margin-bottom:12px">
+        <p style="font-size:13px;font-weight:600;color:var(--info-text);margin-bottom:6px" data-i18n="resumeTitle">⏸ Paused Execution</p>
+        <p id="gfResumeText" style="font-size:12px;color:var(--text-light);margin-bottom:8px"></p>
         <div style="display:flex;gap:8px">
           <button id="gfResumeBtn" class="btn primary" style="flex:1;font-size:12px;padding:6px" data-i18n="resumeBtn">▶ Reanudar</button>
           <button id="gfRestartBtn" class="btn secondary" style="flex:1;font-size:12px;padding:6px" data-i18n="restartBtn">⟳ Reiniciar</button>
@@ -36,37 +37,51 @@
       </div>
       <div id="gfStatusMessage" class="status hidden"></div>
 
-      <details style="margin-bottom:12px;background:#0c1929;border:1px solid #1e3a5f;border-radius:6px;padding:8px;font-size:11px;color:#d1d5db">
-        <summary data-i18n="excelFormat" style="cursor:pointer;font-weight:600;color:#60a5fa">📋 Formato del Excel</summary>
-        <p style="margin-top:8px;margin-bottom:4px"><strong data-i18n="excelFormatDesc">Plano (una fila = un registro):</strong></p>
+      <details style="margin-bottom:12px;background:var(--map-bg);border:1px solid var(--green-border);border-radius:6px;padding:8px;font-size:11px;color:var(--text-light)">
+        <summary style="cursor:pointer;font-weight:600;color:var(--success)">📖 Quick Start Guide</summary>
+        <p style="margin-top:8px;margin-bottom:4px"><strong>How it works:</strong></p>
+        <ol style="margin:4px 0;padding-left:18px;color:var(--text-secondary);line-height:1.6">
+          <li><strong>Load Excel</strong> - Drag your .xlsx or .csv file into the upload zone</li>
+          <li><strong>Detect Fields</strong> - Go to the form page and click "Detect Fields"</li>
+          <li><strong>Map Columns</strong> - Assign each Excel column to a form field</li>
+          <li><strong>Set Save Button</strong> - Select the submit button (usually detected automatically)</li>
+          <li><strong>Execute</strong> - Choose Manual or Auto mode and run</li>
+        </ol>
+        <p style="margin:6px 0 2px;color:var(--warning)">⚠️ <strong>Recommended:</strong> Use <strong>Manual</strong> mode the first time to see how the extension fills the form. Once confirmed, switch to <strong>Auto</strong> for bulk execution.</p>
+        <p style="margin:2px 0;color:var(--text-secondary)">💡 Errors are logged per row. A summary with download report appears at the end.</p>
+      </details>
+
+      <details style="margin-bottom:12px;background:var(--map-bg);border:1px solid var(--info-border);border-radius:6px;padding:8px;font-size:11px;color:var(--text-light)">
+        <summary data-i18n="excelFormat" style="cursor:pointer;font-weight:600;color:var(--info-text)">📋 Excel Format</summary>
+        <p style="margin-top:8px;margin-bottom:4px"><strong data-i18n="excelFormatDesc">Plain format (one row = one record):</strong></p>
         <table style="width:100%;border-collapse:collapse;font-size:10px;margin-bottom:8px">
           <thead>
             <tr>
-              <th style="border:1px solid #374151;padding:4px;text-align:left;background:#1f2937">NOMBRE</th>
-              <th style="border:1px solid #374151;padding:4px;text-align:left;background:#1f2937">CEDULA</th>
-              <th style="border:1px solid #374151;padding:4px;text-align:left;background:#1f2937">CORREO</th>
-              <th style="border:1px solid #374151;padding:4px;text-align:left;background:#1f2937">TELÉFONO</th>
-              <th style="border:1px solid #374151;padding:4px;text-align:left;background:#1f2937">CARGO</th>
+              <th style="border:1px solid var(--border);padding:4px;text-align:left;background:var(--surface)">FULL NAME</th>
+              <th style="border:1px solid var(--border);padding:4px;text-align:left;background:var(--surface)">EMAIL</th>
+              <th style="border:1px solid var(--border);padding:4px;text-align:left;background:var(--surface)">DATE OF BIRTH</th>
+              <th style="border:1px solid var(--border);padding:4px;text-align:left;background:var(--surface)">COUNTRY</th>
+              <th style="border:1px solid var(--border);padding:4px;text-align:left;background:var(--surface)">INTERESTS</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td style="border:1px solid #374151;padding:4px">Juan Pérez</td>
-              <td style="border:1px solid #374151;padding:4px">1-2345-6789</td>
-              <td style="border:1px solid #374151;padding:4px">juan@email.com</td>
-              <td style="border:1px solid #374151;padding:4px">505 8888-888</td>
-              <td style="border:1px solid #374151;padding:4px">Gerente</td>
+              <td style="border:1px solid var(--border);padding:4px">James Wilson</td>
+              <td style="border:1px solid var(--border);padding:4px">james@email.com</td>
+              <td style="border:1px solid var(--border);padding:4px">1991-04-12</td>
+              <td style="border:1px solid var(--border);padding:4px">United States</td>
+              <td style="border:1px solid var(--border);padding:4px">Sports, Technology</td>
             </tr>
           </tbody>
         </table>
-        <p style="color:#9ca3af" data-i18n="excelFormatHelp">La primera fila debe tener los nombres de columna. Cada columna se asigna a un campo del formulario.</p>
+        <p style="color:var(--text-secondary)" data-i18n="excelFormatHelp">The first row must contain the column names. Each column is assigned to a form field.</p>
       </details>
 
       <div class="upload-zone" id="gfUploadZone">
         <div class="upload-icon">+</div>
-        <p class="upload-text" data-i18n="uploadExcel">Arrastra un archivo Excel aquí o haz clic para seleccionar</p>
-        <p class="upload-hint" data-i18n="uploadExcelHint">Formatos: Excel (.xlsx, .xls)</p>
-        <input type="file" id="gfFileInput" accept=".xlsx,.xls" hidden>
+        <p class="upload-text" data-i18n="uploadExcel">Drag an Excel file here or click to select</p>
+        <p class="upload-hint" data-i18n="uploadExcelHint">Formats: .xlsx, .xls, .csv</p>
+        <input type="file" id="gfFileInput" accept=".xlsx,.xls,.csv" hidden>
       </div>
 
       <div id="gfPreviewSection" class="hidden" style="margin-top:12px">
@@ -75,8 +90,8 @@
           <table style="width:100%;border-collapse:collapse;font-size:12px">
             <thead>
               <tr>
-                <th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--border);position:sticky;top:0;background:#111827">#</th>
-                <th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--border);position:sticky;top:0;background:#111827">Columnas</th>
+                <th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface-2)">#</th>
+                <th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface-2)">Columnas</th>
               </tr>
             </thead>
             <tbody id="gfPreviewBody"></tbody>
@@ -86,21 +101,21 @@
 
       <button id="gfDetectBtn" class="btn primary" style="margin-top:12px;width:100%" data-i18n="detectFields">🔍 Detectar Campos</button>
 
-      <div id="gfFieldsSection" class="hidden" style="margin-top:12px;padding:10px;background:#0c1929;border:1px solid #1e3a5f;border-radius:6px">
-        <h4 data-i18n="fieldsTitle" style="font-size:13px;margin-bottom:4px;color:#60a5fa">Campos del Formulario</h4>
-        <p data-i18n="fieldsDesc" style="font-size:11px;color:#9ca3af;margin-bottom:8px">Campos encontrados en la página actual.</p>
+      <div id="gfFieldsSection" class="hidden" style="margin-top:12px;padding:10px;background:var(--map-bg);border:1px solid var(--info-border);border-radius:6px">
+        <h4 data-i18n="fieldsTitle" style="font-size:13px;margin-bottom:4px;color:var(--info-text)">Campos del Formulario</h4>
+        <p data-i18n="fieldsDesc" style="font-size:11px;color:var(--text-secondary);margin-bottom:8px">Campos encontrados en la página actual.</p>
         <div id="gfFieldsList" style="font-size:12px"></div>
       </div>
 
-      <div id="gfButtonsSection" class="hidden" style="margin-top:8px;padding:10px;background:#0c1929;border:1px solid #065f46;border-radius:6px">
-        <h4 data-i18n="buttonsTitle" style="font-size:13px;margin-bottom:4px;color:#34d399">Botón para Guardar</h4>
-        <p data-i18n="buttonsDesc" style="font-size:11px;color:#9ca3af;margin-bottom:8px">Elegí cuál botón se va a presionar después de llenar los datos.</p>
+      <div id="gfButtonsSection" class="hidden" style="margin-top:8px;padding:10px;background:var(--map-bg);border:1px solid var(--green-border);border-radius:6px">
+        <h4 data-i18n="buttonsTitle" style="font-size:13px;margin-bottom:4px;color:var(--success)">Save Button</h4>
+        <p data-i18n="buttonsDesc" style="font-size:11px;color:var(--text-secondary);margin-bottom:8px">Choose which button to press after filling the data.</p>
         <div id="gfButtonsList" style="font-size:12px"></div>
       </div>
 
-      <div id="gfMappingSection" class="hidden" style="margin-top:12px;padding:10px;background:#0c1929;border:1px solid #1e3a5f;border-radius:6px">
-        <h4 data-i18n="mappingTitle" style="font-size:13px;margin-bottom:4px;color:#60a5fa">Asignar Columnas</h4>
-        <p data-i18n="mappingDesc" style="font-size:11px;color:#9ca3af;margin-bottom:8px">Seleccioná qué campo del formulario corresponde a cada columna del Excel.</p>
+      <div id="gfMappingSection" class="hidden" style="margin-top:12px;padding:10px;background:var(--map-bg);border:1px solid var(--info-border);border-radius:6px">
+        <h4 data-i18n="mappingTitle" style="font-size:13px;margin-bottom:4px;color:var(--info-text)">Asignar Columnas</h4>
+        <p data-i18n="mappingDesc" style="font-size:11px;color:var(--text-secondary);margin-bottom:8px">Select which form field corresponds to each Excel column.</p>
         <div id="gfMappingContainer" style="font-size:12px"></div>
       </div>
 
@@ -109,36 +124,35 @@
         <button id="gfLoadConfigBtn" class="btn secondary" style="flex:1;font-size:11px" data-i18n="loadConfig">Cargar Config</button>
       </div>
 
-      <div id="gfConfigSection" class="hidden" style="margin-top:8px;padding:8px;background:#0c1929;border:1px solid #1e3a5f;border-radius:6px">
-        <h4 data-i18n="configsSaved" style="font-size:13px;margin-bottom:4px;color:#60a5fa">Configuraciones Guardadas</h4>
+      <div id="gfConfigSection" class="hidden" style="margin-top:8px;padding:8px;background:var(--map-bg);border:1px solid var(--info-border);border-radius:6px">
+        <h4 data-i18n="configsSaved" style="font-size:13px;margin-bottom:4px;color:var(--info-text)">Configuraciones Guardadas</h4>
         <div id="gfConfigList" style="font-size:12px"></div>
       </div>
 
       <div class="settings-group" style="margin-top:12px">
         <label for="gfModeSelect" data-i18n="modeLabel">Avance</label>
         <select id="gfModeSelect">
-          <option value="auto" selected data-i18n="modeAuto">Automático</option>
+          <option value="auto" selected data-i18n="modeAuto">Automatic</option>
           <option value="manual" data-i18n="modeManual">Manual (fila por fila)</option>
         </select>
       </div>
       <div class="settings-group">
         <label for="gfSpeedRange" data-i18n="speedLabel">Velocidad</label>
         <select id="gfSpeedRange">
-          <option value="200" data-i18n="speedFast">Rápida</option>
+          <option value="200" data-i18n="speedFast">Fast</option>
           <option value="500" selected data-i18n="speedNormal">Normal</option>
           <option value="1000" data-i18n="speedSlow">Lenta</option>
         </select>
       </div>
       <div class="settings-group" style="flex-direction:row;align-items:center;gap:8px">
-        <input type="checkbox" id="gfShowSummary" checked style="accent-color:#f59e0b;width:16px;height:16px">
+        <input type="checkbox" id="gfShowSummary" checked style="accent-color:var(--warning);width:16px;height:16px">
         <label for="gfShowSummary" style="font-size:11px;margin:0" data-i18n="showSummary">Mostrar resumen al final</label>
       </div>
       <div class="settings-group">
-        <label for="gfSubmitSelector" data-i18n="submitLabel">Botón Guardar <span style="color:#f59e0b;font-size:10px">(necesario para guardar)</span></label>
-        <input type="text" id="gfSubmitSelector" placeholder="#btnGuardarGeneric" style="width:100%;padding:6px 8px;border:1px solid #4b5563;border-radius:4px;font-size:11px;background:#111827;color:#e5e7eb">
-        <p data-i18n="submitHelp" style="font-size:10px;color:#6b7280;margin-top:2px">Detectá campos y hacé clic en un botón de la lista para llenar esto automáticamente.</p>
+        <label for="gfSubmitSelector" data-i18n="submitLabel">Botón Guardar <span style="color:var(--warning);font-size:10px">(required for saving)</span></label>
+        <input type="text" id="gfSubmitSelector" placeholder="#btnGuardarGeneric" style="width:100%;padding:6px 8px;border:1px solid var(--border-2);border-radius:4px;font-size:11px;background:var(--input-bg);color:var(--input-text)">
+        <p data-i18n="submitHelp" style="font-size:10px;color:var(--text-muted);margin-top:2px">Detect fields and click a button in the list to autofill.</p>
       </div>
-
       <div style="display:flex;gap:8px;margin-top:12px">
         <button id="gfExecuteBtn" class="btn primary" style="flex:1" data-i18n="execute">▶ Ejecutar</button>
         <button id="gfStopBtn" class="btn secondary" style="flex:1" data-i18n="stop">⏹ Detener</button>
@@ -151,25 +165,25 @@
       <div id="licenseInputSection">
         <div class="settings-group">
           <label data-i18n="licenseActivate">Activar Licencia</label>
-          <input type="text" id="licenseInput" placeholder="YYYY-MM-DD:&lt;hash&gt;" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;background:#111827;color:#e5e7eb;font-family:monospace">
+          <input type="text" id="licenseInput" placeholder="YYYY-MM-DD:&lt;hash&gt;" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;background:var(--input-bg);color:var(--input-text);font-family:monospace">
           <button id="activateBtn" class="btn primary" style="margin-top:4px;width:100%" data-i18n="activate" disabled>▶ Activar</button>
         </div>
       </div>
 
-      <div class="settings-group" style="text-align:center;padding-top:8px;border-top:1px solid #374151">
-        <p style="font-size:12px;color:#9ca3af;margin-bottom:6px" data-i18n="licenseInfoText">¿Sin licencia o tenés dudas?</p>
-        <a id="licenseInfoLink" href="#" target="_blank" style="display:inline-block;background:#25D366;color:#fff;text-decoration:none;padding:8px 20px;border-radius:6px;font-weight:600;font-size:13px">💬 Contactar</a>
+      <div class="settings-group" style="text-align:center;padding-top:8px;border-top:1px solid var(--border)">
+        <p style="font-size:12px;color:var(--text-secondary);margin-bottom:6px" data-i18n="licenseInfoText">No license or have questions?</p>
+        <a id="licenseInfoLink" href="#" target="_blank" style="display:inline-block;background:#25D366;color:#fff;text-decoration:none;padding:8px 20px;border-radius:6px;font-weight:600;font-size:13px" data-i18n="contactBtn">Contact Us</a>
       </div>
 
       <div class="settings-group">
         <label data-i18n="language">Idioma</label>
         <select id="langSelect">
-          <option value="es" data-i18n="langEs">Español</option>
-          <option value="en" data-i18n="langEn">Inglés</option>
+          <option value="es" data-i18n="langEs">Spanish</option>
+          <option value="en" data-i18n="langEn">English</option>
         </select>
       </div>
       <div class="settings-group">
-        <p class="version" data-i18n="version">Versión 1.0.0</p>
+        <p class="version" data-i18n="version">Version 1.0.0</p>
       </div>
     </section>
   </div>

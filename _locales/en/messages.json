@@ -4,9 +4,6 @@
 
   "tabGeneric": { "message": "Generic Form" },
   "tabSettings": { "message": "Settings" },
-  "machineID": { "message": "Machine ID" },
-  "machineIDDesc": { "message": "This ID identifies your PC. Send it to generate your license." },
-  "copyID": { "message": "Copy ID" },
   "licenseKey": { "message": "License Key" },
   "licensePlaceholder": { "message": "Paste license here" },
   "activate": { "message": "Activate" },
@@ -33,7 +30,7 @@
   "excelFormatDesc": { "message": "One row = one record:" },
   "excelFormatHelp": { "message": "The first row must contain column names. Each column is mapped to a form field." },
   "uploadExcel": { "message": "Drag an Excel file here or click to select" },
-  "uploadExcelHint": { "message": "Formats: Excel (.xlsx, .xls)" },
+  "uploadExcelHint": { "message": "Formats: .xlsx, .xls, .csv" },
   "preview": { "message": "Preview" },
   "recordsLoaded": { "message": "{0} records loaded." },
   "executingRecords": { "message": "Running {0} records..." },
@@ -68,7 +65,7 @@
   "submitLabel": { "message": "Save Button" },
   "submitHelp": { "message": "Detect fields and click a button in the list to fill this automatically." },
 
-  "genericFormatError": { "message": "Unsupported format. Use Excel (.xlsx, .xls)." },
+  "genericFormatError": { "message": "Unsupported format. Use Excel (.xlsx, .xls, .csv." },
   "genericReading": { "message": "Reading Excel..." },
   "genericNoData": { "message": "No data found in the file." },
   "genericError": { "message": "Error: {0}" },
@@ -93,7 +90,6 @@
   "licenseRequired": { "message": "License Required" },
   "licenseBlockText": { "message": "This extension requires a valid license to function. Enter your license key in Settings." },
   "goToSettings": { "message": "Go to Settings" },
-  "machineIDHint": { "message": "This ID identifies your PC. Send it to the developer to generate your license." },
   "licenseInfoText": { "message": "No license or have questions?" },
 
   "trialRemaining": { "message": "Free trial: {0} records remaining" },
@@ -110,5 +106,8 @@
   "configSaved": { "message": "Configuration saved." },
   "configLoaded": { "message": "Configuration loaded." },
   "showSummary": { "message": "Show summary at end" },
-  "configDeleted": { "message": "Configuration deleted." }
+  "configDeleted": { "message": "Configuration deleted." },
+  "confirmation1": { "message": "Confirmation 1 (optional)" },
+  "confirmation2": { "message": "Confirmation 2 (optional)" },
+  "contactBtn": { "message": "Contact Us" }
 }
